@@ -321,10 +321,15 @@ class TermKeyIMEService : InputMethodService() {
         )
     }
 
+    private enum class InputLanguage {
+        EN, ES, ZH
+    }
+
     private enum class KeyboardLayoutMode {
         FULL,
-        COMPACT_ZH,
         COMPACT_EN,
+        COMPACT_ES,
+        COMPACT_ZH,
         COMPACT_SYMBOL,
     }
 
@@ -332,6 +337,9 @@ class TermKeyIMEService : InputMethodService() {
     private var ctrlActive = false
     private var altActive = false
     private var shiftActive = false
+    private var currentInputLang = InputLanguage.EN
+    private val spanishLexiconStore by lazy { SpanishLexiconStore() }
+    private var currentSpanishPrefix = ""
 
     // ── Views ────────────────────────────────────────────────────────────────
     private lateinit var rootView: View
@@ -483,6 +491,15 @@ class TermKeyIMEService : InputMethodService() {
     // ── Preferences ──────────────────────────────────────────────────────────
 
     private fun applyPreferences() {
+        val themeKey = prefs.getString("keyboard_theme", "terminal_green")
+        val palette = KeyboardTheme.getPalette(themeKey)
+        if (::rootView.isInitialized) {
+            rootView.setBackgroundColor(palette.surfaceColor)
+            if (::macroScrollView.isInitialized) macroScrollView.setBackgroundColor(palette.surface2Color)
+            if (::candidateScrollView.isInitialized) candidateScrollView.setBackgroundColor(palette.surface2Color)
+            if (::macroSeparator.isInitialized) macroSeparator.setBackgroundColor(palette.borderColor)
+        }
+
         refreshCandidateArea()
         updateKeyboardLayoutUi()
         updateVoiceKeyUI()
@@ -1364,9 +1381,15 @@ class TermKeyIMEService : InputMethodService() {
     }
 
     private fun toggleLanguageMode() {
-        chineseMode = !chineseMode
+        currentInputLang = when (currentInputLang) {
+            InputLanguage.EN -> InputLanguage.ES
+            InputLanguage.ES -> InputLanguage.ZH
+            InputLanguage.ZH -> InputLanguage.EN
+        }
+        chineseMode = (currentInputLang == InputLanguage.ZH)
         layoutMode = defaultLayoutModeForLanguage()
         clearChineseInput(commitCurrent = false)
+        currentSpanishPrefix = ""
         updateKeyboardLayoutUi()
     }
 
@@ -1419,7 +1442,11 @@ class TermKeyIMEService : InputMethodService() {
     }
 
     private fun defaultLayoutModeForLanguage(): KeyboardLayoutMode {
-        return if (chineseMode) KeyboardLayoutMode.COMPACT_ZH else KeyboardLayoutMode.COMPACT_EN
+        return when (currentInputLang) {
+            InputLanguage.EN -> KeyboardLayoutMode.COMPACT_EN
+            InputLanguage.ES -> KeyboardLayoutMode.COMPACT_ES
+            InputLanguage.ZH -> KeyboardLayoutMode.COMPACT_ZH
+        }
     }
 
     private fun currentChineseContextBefore(): String {
@@ -1611,13 +1638,17 @@ class TermKeyIMEService : InputMethodService() {
         )
         val visibleCompactKeys = when (layoutMode) {
             KeyboardLayoutMode.COMPACT_ZH -> COMPACT_ZH_KEY_IDS
-            KeyboardLayoutMode.COMPACT_EN -> COMPACT_EN_KEY_IDS
+            KeyboardLayoutMode.COMPACT_EN, KeyboardLayoutMode.COMPACT_ES -> COMPACT_EN_KEY_IDS
             KeyboardLayoutMode.COMPACT_SYMBOL -> COMPACT_SYMBOL_KEY_IDS
             KeyboardLayoutMode.FULL -> emptySet()
         }
 
-        languageKey.isActivated = chineseMode
-        languageKey.text = getString(if (chineseMode) R.string.key_lang_zh else R.string.key_lang_en)
+        languageKey.isActivated = (currentInputLang != InputLanguage.EN)
+        languageKey.text = when (currentInputLang) {
+            InputLanguage.EN -> getString(R.string.key_lang_en)
+            InputLanguage.ES -> getString(R.string.key_lang_es)
+            InputLanguage.ZH -> getString(R.string.key_lang_zh)
+        }
         applyKeyboardRowHeights()
         applyDynamicKeyLabels()
         applyDynamicKeyTextSizes()
@@ -1637,6 +1668,7 @@ class TermKeyIMEService : InputMethodService() {
 
             KeyboardLayoutMode.COMPACT_ZH,
             KeyboardLayoutMode.COMPACT_EN,
+            KeyboardLayoutMode.COMPACT_ES,
             KeyboardLayoutMode.COMPACT_SYMBOL -> {
                 ALL_KEY_IDS.forEach { keyId ->
                     rootView.findViewById<View>(keyId)?.visibility =
@@ -1925,6 +1957,7 @@ class TermKeyIMEService : InputMethodService() {
             KeyboardLayoutMode.FULL -> baseHeightDp
             KeyboardLayoutMode.COMPACT_ZH,
             KeyboardLayoutMode.COMPACT_EN,
+            KeyboardLayoutMode.COMPACT_ES,
             KeyboardLayoutMode.COMPACT_SYMBOL -> nextCompactHeightDp(baseHeightDp)
         }
         val rowHeightPx = (effectiveHeightDp * resources.displayMetrics.density).toInt()

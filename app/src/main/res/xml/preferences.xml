@@ -2,6 +2,12 @@
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
 
     <PreferenceCategory android:title="@string/pref_category_appearance">
+        <ListPreference
+            android:key="keyboard_theme"
+            android:title="@string/pref_keyboard_theme"
+            android:entries="@array/keyboard_theme_entries"
+            android:entryValues="@array/keyboard_theme_values"
+            android:defaultValue="terminal_green" />
         <SwitchPreferenceCompat
             android:key="show_fn_row"
             android:title="@string/pref_show_fn_row"
@@ -29,6 +35,11 @@
     </PreferenceCategory>
 
     <PreferenceCategory android:title="@string/pref_category_behavior">
+        <SwitchPreferenceCompat
+            android:key="swipe_typing_enabled"
+            android:title="@string/pref_swipe_typing"
+            android:summary="@string/pref_swipe_typing_summary"
+            android:defaultValue="true" />
         <SwitchPreferenceCompat
             android:key="sticky_modifiers"
             android:title="@string/pref_sticky_mod"

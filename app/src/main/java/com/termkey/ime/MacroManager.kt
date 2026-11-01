@@ -31,6 +31,14 @@ object MacroManager {
         Macro("free -h", "free -h"),
         Macro("netstat", "netstat -tlnp"),
         Macro("curl -s", "curl -s "),
+        // Spanish execution commands / macros
+        Macro("ayuda", "help"),
+        Macro("listar", "ls -la"),
+        Macro("estado", "systemctl status "),
+        Macro("limpiar", "clear"),
+        Macro("ejecutar", "bash "),
+        Macro("git estado", "git status"),
+        Macro("git actualizar", "git pull"),
     )
 
     fun getMacros(context: Context): List<Macro> {

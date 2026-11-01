@@ -110,6 +110,10 @@
     <string name="pref_value_not_set">Not set</string>
     <string name="pref_value_configured">Configured</string>
 
+    <string name="pref_keyboard_theme">Keyboard theme</string>
+    <string name="pref_swipe_typing">Swipe-to-type gesture typing</string>
+    <string name="pref_swipe_typing_summary">Swipe your finger across keys to type words automatically</string>
+
     <!-- Keyboard labels -->
     <string name="key_ctrl">CTRL</string>
     <string name="key_alt">ALT</string>
@@ -120,6 +124,7 @@
     <string name="key_backspace">⌫</string>
     <string name="key_shift">⇧</string>
     <string name="key_lang_en">EN</string>
+    <string name="key_lang_es">ES</string>
     <string name="key_lang_zh">中</string>
     <string name="key_mic_idle">MIC</string>
     <string name="key_mic_connecting">...</string>

@@ -12,4 +12,20 @@
         <item>50</item>
         <item>58</item>
     </string-array>
+    <string-array name="keyboard_theme_entries">
+        <item>Terminal Green (Default)</item>
+        <item>Classic Dark</item>
+        <item>Terminal Amber</item>
+        <item>Cyberpunk Purple</item>
+        <item>Light Theme</item>
+        <item>Crimson Red</item>
+    </string-array>
+    <string-array name="keyboard_theme_values">
+        <item>terminal_green</item>
+        <item>classic_dark</item>
+        <item>terminal_amber</item>
+        <item>cyberpunk</item>
+        <item>light</item>
+        <item>crimson</item>
+    </string-array>
 </resources>
