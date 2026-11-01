@@ -1,19 +1,28 @@
-# TermKey IME
+# Cythernoir TermKey
 
-Built for terminals. Tuned for Chinese.
+Built for terminals. Tuned for multi-language input and speed.
 
-Android terminal keyboard with compact Chinese/English layouts, Natural Shuangpin input, editable macros, and streaming voice input.
+Advanced Android terminal and productivity keyboard featuring English, Spanish, and Chinese (Natural Shuangpin) layouts, gesture swipe-to-type, customizable color themes, editable macros, and streaming voice input.
 
 ## Features
 
 - Terminal-first key behavior: sticky `Ctrl` / `Alt` / `Shift`, real control characters, `Alt` as `ESC + key`, F1-F12, arrows, PgUp/PgDn, Home/End.
-- Three keyboard layouts at runtime:
-  - `FULL`: full terminal keyboard with function row and control keys.
-  - `COMPACT_ZH`: Chinese compact layout for double-pinyin input.
-  - `COMPACT_EN`: English compact layout with letters, numbers, and common punctuation.
-- Dedicated compact symbol mode:
-  - `#+=` enters a symbol-only page.
-  - tap a symbol to insert it and return to the previous compact layout.
+- Multiple keyboard layouts & languages:
+  - `COMPACT_EN`: Standard QWERTY English layout.
+  - `COMPACT_ES`: Standard QWERTY Spanish layout with base prediction dictionary.
+  - `COMPACT_ZH`: Chinese compact layout for double-pinyin (Shuangpin) input.
+  - `FULL`: Full terminal keyboard with function row and control keys.
+- Gesture Swipe-to-Type:
+  - Slide your finger across character keys to trace and type words automatically in English and Spanish.
+- Customizable Keyboard Themes & Colors:
+  - Terminal Green (Default)
+  - Classic Dark
+  - Terminal Amber
+  - Cyberpunk Purple
+  - Light Theme
+  - Crimson Red
+  - Dynamic Wallpaper / System Theme
+  - State-aware touch visual feedback on keypress.
 - Natural Shuangpin Chinese input:
   - offline lexicon-backed candidate lookup
   - phrase and sentence-first candidate ordering
@@ -21,31 +30,29 @@ Android terminal keyboard with compact Chinese/English layouts, Natural Shuangpi
   - candidate bar click-to-commit
   - `Space` confirms the first Chinese candidate by default
 - Streaming voice input using Volcengine WebSocket ASR.
-- Editable macro bar with persistent custom macros.
+- Editable macro bar with custom macros and pre-configured Spanish terminal commands (`ayuda`, `listar`, `estado`, `limpiar`, `ejecutar`, etc.).
 - Compact-mode touch target expansion, hold-to-delete, and swipe-up clear for delete keys.
 
 ## Current Input Behavior
 
-### Chinese mode
+### Spanish mode (`ES`)
 
-- Tap `中/EN` to switch into Chinese mode.
+- Tap the language key (`EN` / `ES` / `ZH`) or select default input language in settings to switch into Spanish mode.
+- Features base Spanish word prediction dictionary for smart autocomplete and spell correction.
+- Supports swipe-to-type gesture typing.
+
+### Chinese mode (`ZH`)
+
+- Tap `中` to switch into Chinese mode.
 - Letter keys enter Natural Shuangpin code.
 - The candidate bar stays visible in Chinese mode.
 - The first candidate is used as composing text.
 - `Space` confirms the first candidate and clears the current input buffer.
-- `Backspace` deletes Shuangpin code first; when the buffer is empty it deletes text normally.
-- The engine supports phrase and sentence candidates, not just single characters.
 
-### English mode
+### English mode (`EN`)
 
 - Compact English keeps letters, numbers, and common punctuation visible.
 - `FULL` mode restores the full terminal layout.
-
-### Symbol mode
-
-- In compact Chinese or English, tap `#+=` to enter symbol mode.
-- Symbol mode shows symbol keys only, plus the necessary control keys such as `ABC`, `Space`, `Backspace`, `Enter`, and `MIC`.
-- Tapping any symbol inserts it and returns to the previous compact layout.
 
 ### Voice input
 
@@ -69,41 +76,30 @@ Android terminal keyboard with compact Chinese/English layouts, Natural Shuangpi
 ./gradlew installDebug
 ```
 
-If Gradle fails with `Unsupported class file major version 69`, switch back to JDK 17 before building.
-
-## Testing
-
-- Manual regression guide: [`TESTING.md`](TESTING.md)
-- Emulator Shuangpin smoke test:
-
-```bash
-make emulator-shuangpin-test
-```
-
 ## Setup
 
 1. Install the debug build.
-2. Open the `TermKey` app.
-3. Enable the `TermKey` input method in Android keyboard settings.
-4. Switch the active keyboard to `TermKey`.
-5. Open `Settings` inside the app to configure macros or voice input.
+2. Open the `Cythernoir TermKey` app.
+3. Enable the input method in Android keyboard settings.
+4. Switch the active keyboard to `Cythernoir TermKey`.
+5. Open `Settings` inside the app to configure themes, language, macros, or voice input.
 
 ## Settings
 
 Key settings currently exposed:
 
-- show/hide macro bar
-- show/hide F-key row
-- key height
-- vibrate on keypress
-- sound on keypress
-- sticky modifiers
-- swipe-up alternate symbols
-- long-press alternate symbols
-- show/hide voice key
-- microphone permission request
-- Volcengine voice configuration
-- macro editing and reset
+- Keyboard theme selection (7 themes including Dynamic / System Theme)
+- Default input language (English, Spanish, Chinese)
+- Swipe-to-type gesture typing toggle
+- Show/hide macro bar
+- Show/hide F-key row
+- Key height
+- Vibrate on keypress
+- Sound on keypress
+- Sticky modifiers
+- Swipe-up & long-press alternate symbols
+- Voice input configuration
+- Macro editing and reset
 
 ## Project Structure
 
@@ -112,35 +108,14 @@ app/src/main/java/com/termkey/ime/
 ├── TermKeyIMEService.kt
 ├── NaturalShuangpinEngine.kt
 ├── ChineseLexiconStore.kt
+├── SpanishLexiconStore.kt
+├── KeyboardTheme.kt
 ├── VolcengineVoiceInputClient.kt
 ├── MacroManager.kt
 ├── MacroEditorActivity.kt
 ├── SettingsActivity.kt
 └── SetupActivity.kt
 ```
-
-Important resources:
-
-- `app/src/main/res/layout/keyboard_view.xml`: keyboard layout
-- `app/src/main/res/xml/preferences.xml`: settings screen
-- `app/src/main/assets/chinese_lexicon.db`: offline Chinese lexicon
-
-## Notes
-
-- The Chinese lexicon is bundled locally, so APK size is larger than a plain keyboard app.
-- User word frequency is stored on-device.
-- Voice input depends on external Volcengine credentials; the rest of the keyboard works offline.
-
-## Compatible Apps
-
-Best suited for terminal and SSH apps such as:
-
-- Termux
-- ConnectBot
-- JuiceSSH
-- Blink Shell
-
-It also works in ordinary Android text fields, especially for compact Chinese and voice input.
 
 ## License
 

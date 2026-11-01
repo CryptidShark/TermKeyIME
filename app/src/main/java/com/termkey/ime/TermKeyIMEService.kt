@@ -353,6 +353,20 @@ class TermKeyIMEService : InputMethodService() {
         }
     }
 
+    private fun checkTouchOverCharKeys(rawX: Float, rawY: Float, charKeysMap: Map<Int, Pair<Char, Char>>): Char? {
+        for ((viewId, chars) in charKeysMap) {
+            val v = rootView.findViewById<View>(viewId) ?: continue
+            if (v.visibility != View.VISIBLE) continue
+            val loc = intArrayOf(0, 0)
+            v.getLocationOnScreen(loc)
+            val rect = Rect(loc[0], loc[1], loc[0] + v.width, loc[1] + v.height)
+            if (rect.contains(rawX.toInt(), rawY.toInt())) {
+                return chars.first
+            }
+        }
+        return null
+    }
+
     // ── Views ────────────────────────────────────────────────────────────────
     private lateinit var rootView: View
     private lateinit var macroScrollView: HorizontalScrollView
@@ -454,7 +468,6 @@ class TermKeyIMEService : InputMethodService() {
         applyPreferences()
         buildMacroBar()
         wireKeys()
-        setupSwipeTypingGesture()
         wireLlmPanel()
         adaptiveTouchDelegate = AdaptiveTouchDelegateGroup(rootView)
         rootView.touchDelegate = adaptiveTouchDelegate
@@ -566,85 +579,7 @@ class TermKeyIMEService : InputMethodService() {
         }
     }
 
-    private var swipeTraceActive = false
-    private val swipePathChars = StringBuilder()
-    private val charKeyBoundsMap = mutableListOf<Pair<Rect, Char>>()
 
-    private fun initCharKeyBounds() {
-        charKeyBoundsMap.clear()
-        if (!::rootView.isInitialized) return
-        val host = rootView as? ViewGroup ?: return
-        val charKeysMap = mapOf(
-            R.id.key_q to 'q', R.id.key_w to 'w', R.id.key_e to 'e', R.id.key_r to 'r', R.id.key_t to 't',
-            R.id.key_y to 'y', R.id.key_u to 'u', R.id.key_i to 'i', R.id.key_o to 'o', R.id.key_p to 'p',
-            R.id.key_a to 'a', R.id.key_s to 's', R.id.key_d to 'd', R.id.key_f_key to 'f', R.id.key_g to 'g',
-            R.id.key_h to 'h', R.id.key_j to 'j', R.id.key_k to 'k', R.id.key_l to 'l',
-            R.id.key_z to 'z', R.id.key_x to 'x', R.id.key_c to 'c', R.id.key_v to 'v',
-            R.id.key_b to 'b', R.id.key_n to 'n', R.id.key_m to 'm'
-        )
-        charKeysMap.forEach { (viewId, ch) ->
-            rootView.findViewById<View>(viewId)?.let { v ->
-                if (v.visibility == View.VISIBLE) {
-                    charKeyBoundsMap.add(getBoundsRelativeToHost(host, v) to ch)
-                }
-            }
-        }
-    }
-
-    private fun setupSwipeTypingGesture() {
-        val content = rootView.findViewById<View>(R.id.keyboard_content) ?: return
-        if (!prefs.getBoolean("swipe_typing_enabled", true)) return
-
-        content.setOnTouchListener { _, event ->
-            if (layoutMode == KeyboardLayoutMode.COMPACT_SYMBOL) return@setOnTouchListener false
-            val x = event.x.toInt()
-            val y = event.y.toInt()
-
-            when (event.action) {
-                MotionEvent.ACTION_DOWN -> {
-                    initCharKeyBounds()
-                    swipeTraceActive = true
-                    swipePathChars.clear()
-                    charKeyBoundsMap.forEach { (rect, ch) ->
-                        if (rect.contains(x, y)) {
-                            swipePathChars.append(ch)
-                        }
-                    }
-                    false
-                }
-                MotionEvent.ACTION_MOVE -> {
-                    if (swipeTraceActive) {
-                        charKeyBoundsMap.forEach { (rect, ch) ->
-                            if (rect.contains(x, y)) {
-                                if (swipePathChars.isEmpty() || swipePathChars.last() != ch) {
-                                    swipePathChars.append(ch)
-                                }
-                            }
-                        }
-                    }
-                    false
-                }
-                MotionEvent.ACTION_UP -> {
-                    if (swipeTraceActive && swipePathChars.length >= 2) {
-                        swipeTraceActive = false
-                        val traced = swipePathChars.toString()
-                        val word = matchSwipeWord(traced)
-                        if (!word.isNullOrBlank()) {
-                            feedbackVibrate(24)
-                            feedbackSound()
-                            currentInputConnection?.commitText("$word ", 1)
-                            swipePathChars.clear()
-                            return@setOnTouchListener true
-                        }
-                    }
-                    swipeTraceActive = false
-                    swipePathChars.clear()
-                    false
-                }
-                else -> false
-            }
-        }
-    }
 
     private fun applyInputTestOverrides(info: EditorInfo?) {
         val isInputTestEditor = info?.packageName == packageName
