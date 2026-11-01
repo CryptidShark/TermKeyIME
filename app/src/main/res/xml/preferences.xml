@@ -35,6 +35,12 @@
     </PreferenceCategory>
 
     <PreferenceCategory android:title="@string/pref_category_behavior">
+        <ListPreference
+            android:key="input_language"
+            android:title="@string/pref_input_language"
+            android:entries="@array/input_language_entries"
+            android:entryValues="@array/input_language_values"
+            android:defaultValue="en" />
         <SwitchPreferenceCompat
             android:key="swipe_typing_enabled"
             android:title="@string/pref_swipe_typing"

@@ -24,6 +24,7 @@
     <!-- Settings -->
     <string name="pref_category_appearance">Appearance</string>
     <string name="pref_category_behavior">Behavior</string>
+    <string name="pref_input_language">Default input language</string>
     <string name="pref_category_voice">Voice Input</string>
     <string name="pref_category_llm">LLM Tools</string>
     <string name="pref_category_macros">Macro Bar</string>

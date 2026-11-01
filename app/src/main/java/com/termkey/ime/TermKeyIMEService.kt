@@ -340,6 +340,18 @@ class TermKeyIMEService : InputMethodService() {
     private var currentInputLang = InputLanguage.EN
     private val spanishLexiconStore by lazy { SpanishLexiconStore() }
     private var currentSpanishPrefix = ""
+    private var isSwipeTypingActive = false
+    private val swipeTraceChars = StringBuilder()
+
+    private fun matchSwipeWord(traced: String): String? {
+        return when (currentInputLang) {
+            InputLanguage.ES -> spanishLexiconStore.lookupCandidates(traced).firstOrNull()?.text
+            else -> {
+                val commonWords = listOf("the", "and", "that", "with", "this", "from", "they", "know", "want", "been", "good", "much", "some", "time", "very", "when", "come", "here", "just", "like", "long", "make", "many", "more", "only", "over", "such", "take", "than", "them", "well", "were", "hola", "gracias", "por", "favor")
+                commonWords.firstOrNull { it.startsWith(traced) || it.contains(traced) } ?: traced
+            }
+        }
+    }
 
     // ── Views ────────────────────────────────────────────────────────────────
     private lateinit var rootView: View
@@ -493,11 +505,19 @@ class TermKeyIMEService : InputMethodService() {
     private fun applyPreferences() {
         val themeKey = prefs.getString("keyboard_theme", "terminal_green")
         val palette = KeyboardTheme.getPalette(themeKey)
-        if (::rootView.isInitialized) {
-            rootView.setBackgroundColor(palette.surfaceColor)
-            if (::macroScrollView.isInitialized) macroScrollView.setBackgroundColor(palette.surface2Color)
-            if (::candidateScrollView.isInitialized) candidateScrollView.setBackgroundColor(palette.surface2Color)
-            if (::macroSeparator.isInitialized) macroSeparator.setBackgroundColor(palette.borderColor)
+        applyThemePalette(palette)
+
+        val langPref = prefs.getString("input_language", "en")
+        val newLang = when (langPref) {
+            "es" -> InputLanguage.ES
+            "zh" -> InputLanguage.ZH
+            else -> InputLanguage.EN
+        }
+        if (newLang != currentInputLang) {
+            currentInputLang = newLang
+            chineseMode = (currentInputLang == InputLanguage.ZH)
+            layoutMode = defaultLayoutModeForLanguage()
+            clearChineseInput(commitCurrent = false)
         }
 
         refreshCandidateArea()
@@ -505,6 +525,36 @@ class TermKeyIMEService : InputMethodService() {
         updateVoiceKeyUI()
         updateLlmPanelUi()
         scheduleAdaptiveTouchTargetsUpdate()
+    }
+
+    private fun applyThemePalette(palette: KeyboardColorPalette) {
+        if (!::rootView.isInitialized) return
+        rootView.setBackgroundColor(palette.surfaceColor)
+        if (::macroScrollView.isInitialized) macroScrollView.setBackgroundColor(palette.surface2Color)
+        if (::candidateScrollView.isInitialized) candidateScrollView.setBackgroundColor(palette.surface2Color)
+        if (::macroSeparator.isInitialized) macroSeparator.setBackgroundColor(palette.borderColor)
+
+        val applyToView: (View?) -> Unit = { view ->
+            when (view) {
+                is TextView -> {
+                    view.setTextColor(palette.textColor)
+                    view.backgroundTintList = android.content.res.ColorStateList.valueOf(palette.keyBgColor)
+                }
+            }
+        }
+
+        if (::keyRows.isInitialized) {
+            keyRows.forEach { row ->
+                for (i in 0 until row.childCount) {
+                    applyToView(row.getChildAt(i))
+                }
+            }
+        }
+        if (::fnRow.isInitialized) {
+            for (i in 0 until fnRow.childCount) {
+                applyToView(fnRow.getChildAt(i))
+            }
+        }
     }
 
     private fun applyInputTestOverrides(info: EditorInfo?) {
@@ -784,16 +834,53 @@ class TermKeyIMEService : InputMethodService() {
                     true
                 }
             }
-            // Swipe-up gesture for alternate
-            if (prefs.getBoolean("swipe_for_symbols", true)) {
+            // Swipe-to-type & swipe-up gesture for alternate
+            if (prefs.getBoolean("swipe_for_symbols", true) || prefs.getBoolean("swipe_typing_enabled", true)) {
+                var startX = 0f
                 var startY = 0f
                 view.setOnTouchListener { _, event ->
                     if (layoutMode == KeyboardLayoutMode.COMPACT_SYMBOL) {
                         return@setOnTouchListener false
                     }
                     when (event.action) {
-                        MotionEvent.ACTION_DOWN -> { startY = event.y; false }
+                        MotionEvent.ACTION_DOWN -> {
+                            startX = event.x
+                            startY = event.y
+                            if (prefs.getBoolean("swipe_typing_enabled", true)) {
+                                isSwipeTypingActive = true
+                                swipeTraceChars.clear()
+                                swipeTraceChars.append(chars.first)
+                            }
+                            false
+                        }
+                        MotionEvent.ACTION_MOVE -> {
+                            if (isSwipeTypingActive && prefs.getBoolean("swipe_typing_enabled", true)) {
+                                val dx = event.x - startX
+                                val dy = event.y - startY
+                                if (Math.hypot(dx.toDouble(), dy.toDouble()) > 35f) {
+                                    if (!swipeTraceChars.contains(chars.first)) {
+                                        swipeTraceChars.append(chars.first)
+                                    }
+                                }
+                            }
+                            false
+                        }
                         MotionEvent.ACTION_UP -> {
+                            if (isSwipeTypingActive && prefs.getBoolean("swipe_typing_enabled", true) && swipeTraceChars.length >= 2) {
+                                isSwipeTypingActive = false
+                                val traced = swipeTraceChars.toString()
+                                val word = matchSwipeWord(traced)
+                                if (word != null) {
+                                    feedbackVibrate(22)
+                                    feedbackSound()
+                                    currentInputConnection?.commitText("$word ", 1)
+                                    swipeTraceChars.clear()
+                                    return@setOnTouchListener true
+                                }
+                            }
+                            isSwipeTypingActive = false
+                            swipeTraceChars.clear()
+
                             if (handleCompactPunctuationKey(viewId)) {
                                 feedbackVibrate(16)
                                 feedbackSound()
