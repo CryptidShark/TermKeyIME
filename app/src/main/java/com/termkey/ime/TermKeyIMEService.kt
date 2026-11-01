@@ -858,96 +858,102 @@ class TermKeyIMEService : InputMethodService() {
                     true
                 }
             }
-            // Swipe-to-type & swipe-up gesture for alternate
-            if (prefs.getBoolean("swipe_for_symbols", true) || prefs.getBoolean("swipe_typing_enabled", true)) {
-                var startX = 0f
-                var startY = 0f
-                view.setOnTouchListener { _, event ->
-                    if (layoutMode == KeyboardLayoutMode.COMPACT_SYMBOL) {
-                        return@setOnTouchListener false
-                    }
-                    when (event.action) {
-                        MotionEvent.ACTION_DOWN -> {
-                            startX = event.x
-                            startY = event.y
-                            if (prefs.getBoolean("swipe_typing_enabled", true)) {
-                                isSwipeTypingActive = true
-                                swipeTraceChars.clear()
-                                swipeTraceChars.append(chars.first)
-                            }
-                            false
-                        }
-                        MotionEvent.ACTION_MOVE -> {
-                            if (isSwipeTypingActive && prefs.getBoolean("swipe_typing_enabled", true)) {
-                                val dx = event.x - startX
-                                val dy = event.y - startY
-                                if (Math.hypot(dx.toDouble(), dy.toDouble()) > 35f) {
-                                    if (!swipeTraceChars.contains(chars.first)) {
-                                        swipeTraceChars.append(chars.first)
-                                    }
-                                }
-                            }
-                            false
-                        }
-                        MotionEvent.ACTION_UP -> {
-                            if (isSwipeTypingActive && prefs.getBoolean("swipe_typing_enabled", true) && swipeTraceChars.length >= 2) {
-                                isSwipeTypingActive = false
-                                val traced = swipeTraceChars.toString()
-                                val word = matchSwipeWord(traced)
-                                if (word != null) {
-                                    feedbackVibrate(22)
-                                    feedbackSound()
-                                    currentInputConnection?.commitText("$word ", 1)
-                                    swipeTraceChars.clear()
-                                    return@setOnTouchListener true
-                                }
-                            }
-                            isSwipeTypingActive = false
-                            swipeTraceChars.clear()
 
-                            if (handleCompactPunctuationKey(viewId)) {
-                                feedbackVibrate(16)
+            // Unified touch listener for swipe-to-type, swipe-up symbols, and normal taps
+            var startX = 0f
+            var startY = 0f
+            var hasMoved = false
+            view.setOnTouchListener { _, event ->
+                if (layoutMode == KeyboardLayoutMode.COMPACT_SYMBOL) {
+                    return@setOnTouchListener false
+                }
+                val rawX = event.rawX
+                val rawY = event.rawY
+
+                when (event.action) {
+                    MotionEvent.ACTION_DOWN -> {
+                        startX = event.x
+                        startY = event.y
+                        hasMoved = false
+                        if (prefs.getBoolean("swipe_typing_enabled", true)) {
+                            isSwipeTypingActive = true
+                            swipeTraceChars.clear()
+                            swipeTraceChars.append(chars.first)
+                        }
+                        false
+                    }
+                    MotionEvent.ACTION_MOVE -> {
+                        val dx = event.x - startX
+                        val dy = event.y - startY
+                        if (Math.hypot(dx.toDouble(), dy.toDouble()) > 30f) {
+                            hasMoved = true
+                        }
+                        if (isSwipeTypingActive && prefs.getBoolean("swipe_typing_enabled", true)) {
+                            val touchedChar = checkTouchOverCharKeys(rawX, rawY, charKeys)
+                            if (touchedChar != null) {
+                                if (swipeTraceChars.isEmpty() || swipeTraceChars.last() != touchedChar) {
+                                    swipeTraceChars.append(touchedChar)
+                                }
+                            }
+                        }
+                        false
+                    }
+                    MotionEvent.ACTION_UP -> {
+                        // 1. Check swipe-to-type gesture
+                        if (hasMoved && prefs.getBoolean("swipe_typing_enabled", true) && swipeTraceChars.length >= 2) {
+                            isSwipeTypingActive = false
+                            val traced = swipeTraceChars.toString()
+                            val word = matchSwipeWord(traced)
+                            swipeTraceChars.clear()
+                            if (!word.isNullOrBlank()) {
+                                feedbackVibrate(24)
                                 feedbackSound()
+                                currentInputConnection?.commitText("$word ", 1)
                                 return@setOnTouchListener true
                             }
+                        }
+                        isSwipeTypingActive = false
+                        swipeTraceChars.clear()
+
+                        // 2. Check swipe-up alternate symbol
+                        if (hasMoved) {
                             val dy = startY - event.y
-                            if (dy > 30) { // swipe up
+                            if (dy > 30 && prefs.getBoolean("swipe_for_symbols", true)) {
                                 feedbackVibrate(20)
                                 handleCharacterInput(chars.first, chars.second, useAlternate = true)
-                                true
-                            } else {
-                                false
+                                return@setOnTouchListener true
                             }
                         }
-                        else -> false
+
+                        // 3. Normal tap (click)
+                        if (handleSymbolModeCharacterKey(viewId)) {
+                            feedbackVibrate(16)
+                            feedbackSound()
+                            if (shiftActive) {
+                                shiftActive = false
+                                updateModifierUI()
+                            }
+                            return@setOnTouchListener true
+                        }
+                        if (handleCompactPunctuationKey(viewId)) {
+                            feedbackVibrate(16)
+                            feedbackSound()
+                            if (shiftActive) {
+                                shiftActive = false
+                                updateModifierUI()
+                            }
+                            return@setOnTouchListener true
+                        }
+                        feedbackVibrate()
+                        feedbackSound()
+                        handleCharacterInput(chars.first, chars.second, useAlternate = shiftActive)
+                        if (shiftActive) {
+                            shiftActive = false
+                            updateModifierUI()
+                        }
+                        true
                     }
-                }
-            }
-            view.setOnClickListener {
-                if (handleSymbolModeCharacterKey(viewId)) {
-                    feedbackVibrate(16)
-                    feedbackSound()
-                    if (shiftActive) {
-                        shiftActive = false
-                        updateModifierUI()
-                    }
-                    return@setOnClickListener
-                }
-                if (handleCompactPunctuationKey(viewId)) {
-                    feedbackVibrate(16)
-                    feedbackSound()
-                    if (shiftActive) {
-                        shiftActive = false
-                        updateModifierUI()
-                    }
-                    return@setOnClickListener
-                }
-                feedbackVibrate()
-                feedbackSound()
-                handleCharacterInput(chars.first, chars.second, useAlternate = shiftActive)
-                if (shiftActive) {
-                    shiftActive = false
-                    updateModifierUI()
+                    else -> false
                 }
             }
         }
@@ -1466,9 +1472,18 @@ class TermKeyIMEService : InputMethodService() {
         if (layoutMode == KeyboardLayoutMode.COMPACT_SYMBOL) {
             return
         }
-        val isLetter = primary in 'a'..'z'
+        val isLetter = primary in 'a'..'z' || primary in 'á'..'ú' || primary == 'ñ'
+        val effectiveChar = if (useAlternate) alternate else primary
+
         if (chineseMode && isLetter && !ctrlActive && !altActive) {
-            updateChineseState(chineseEngine.append(primary, currentChineseContextBefore()))
+            updateChineseState(chineseEngine.append(effectiveChar, currentChineseContextBefore()))
+            return
+        }
+
+        if (currentInputLang == InputLanguage.ES && isLetter && !ctrlActive && !altActive && !useAlternate) {
+            currentSpanishPrefix += effectiveChar
+            currentInputConnection?.setComposingText(currentSpanishPrefix, 1)
+            refreshCandidateArea()
             return
         }
 
@@ -1488,7 +1503,14 @@ class TermKeyIMEService : InputMethodService() {
             commitChineseSelection()
         }
 
-        sendChar(if (useAlternate) alternate else primary)
+        if (currentInputLang == InputLanguage.ES && currentSpanishPrefix.isNotEmpty()) {
+            val bestCandidate = spanishLexiconStore.lookupCandidates(currentSpanishPrefix).firstOrNull()?.text ?: currentSpanishPrefix
+            currentInputConnection?.commitText(bestCandidate, 1)
+            currentSpanishPrefix = ""
+            refreshCandidateArea()
+        }
+
+        sendChar(effectiveChar)
     }
 
     private fun toggleLanguageMode() {
@@ -1663,6 +1685,15 @@ class TermKeyIMEService : InputMethodService() {
                     candidateScrollView.visibility = View.GONE
                 }
             }
+            currentInputLang == InputLanguage.ES && currentSpanishPrefix.isNotEmpty() && layoutMode != KeyboardLayoutMode.COMPACT_SYMBOL -> {
+                val candidates = spanishLexiconStore.lookupCandidates(currentSpanishPrefix)
+                if (candidates.isNotEmpty()) {
+                    rebuildSpanishCandidateBar(candidates)
+                } else {
+                    candidateContainer.removeAllViews()
+                    candidateScrollView.visibility = View.GONE
+                }
+            }
             shouldShowLlmToolBar() -> {
                 rebuildLlmToolBar()
             }
@@ -1671,6 +1702,23 @@ class TermKeyIMEService : InputMethodService() {
                 candidateScrollView.visibility = View.GONE
             }
         }
+    }
+
+    private fun rebuildSpanishCandidateBar(candidates: List<SpanishCandidate>) {
+        candidateContainer.removeAllViews()
+        candidates.forEach { candidate ->
+            val view = layoutInflater.inflate(R.layout.candidate_item, candidateContainer, false) as TextView
+            view.text = candidate.text
+            view.setOnClickListener {
+                feedbackVibrate(14)
+                feedbackSound()
+                currentInputConnection?.commitText(candidate.text, 1)
+                currentSpanishPrefix = ""
+                refreshCandidateArea()
+            }
+            candidateContainer.addView(view)
+        }
+        candidateScrollView.visibility = View.VISIBLE
     }
 
     private fun shouldShowLlmToolBar(): Boolean {
