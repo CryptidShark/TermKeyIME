@@ -2,7 +2,7 @@ package com.termkey.ime
 
 data class SpanishCandidate(
     val text: String,
-    val score: Int = 100
+    val score: Int = 100,
 )
 
 class SpanishLexiconStore {
@@ -31,14 +31,14 @@ class SpanishLexiconStore {
         "proyecto", "comando", "prueba", "error", "actualizar", "instalar", "red", "puerto",
         "usuario", "clave", "contrasena", "version", "fecha", "hora", "proceso", "memoria",
         "disco", "git", "commit", "push", "pull", "branch", "build", "gradle", "kotlin", "java",
-        "android", "studio", "smartphone", "pantalla", "tactil", "deslizar", "prediccion"
+        "android", "studio", "smartphone", "pantalla", "tactil", "deslizar", "prediccion",
     )
 
     fun lookupCandidates(prefix: String): List<SpanishCandidate> {
         val clean = prefix.lowercase().trim()
         if (clean.isEmpty()) return emptyList()
-        return spanishWords
-            .filter { it.startsWith(clean) || levenshteinDistance(it, clean) <= 1 }
+        return spanishWords.asSequence()
+            .filter { it.startsWith(clean) || (levenshteinDistance(it, clean) <= 1) }
             .sortedBy { word ->
                 when {
                     word == clean -> 0
@@ -48,6 +48,7 @@ class SpanishLexiconStore {
             }
             .take(10)
             .map { SpanishCandidate(it) }
+            .toList()
     }
 
     fun correctSpelling(word: String): String {
@@ -60,7 +61,7 @@ class SpanishLexiconStore {
         val lhsLength = lhs.length
         val rhsLength = rhs.length
         var cost = IntArray(lhsLength + 1) { it }
-        var newCost = IntArray(lhsLength + 1) { 0 }
+        var newCost = IntArray(lhsLength + 1)
 
         for (i in 1..rhsLength) {
             newCost[0] = i
@@ -69,7 +70,7 @@ class SpanishLexiconStore {
                 newCost[j] = minOf(
                     cost[j] + 1,
                     newCost[j - 1] + 1,
-                    cost[j - 1] + match
+                    cost[j - 1] + match,
                 )
             }
             val swap = cost
