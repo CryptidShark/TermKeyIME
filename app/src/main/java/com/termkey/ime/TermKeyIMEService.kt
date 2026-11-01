@@ -880,12 +880,12 @@ class TermKeyIMEService : InputMethodService() {
                             swipeTraceChars.clear()
                             swipeTraceChars.append(chars.first)
                         }
-                        false
+                        true
                     }
                     MotionEvent.ACTION_MOVE -> {
                         val dx = event.x - startX
                         val dy = event.y - startY
-                        if (Math.hypot(dx.toDouble(), dy.toDouble()) > 30f) {
+                        if (Math.hypot(dx.toDouble(), dy.toDouble()) > 20f) {
                             hasMoved = true
                         }
                         if (isSwipeTypingActive && prefs.getBoolean("swipe_typing_enabled", true)) {
@@ -896,7 +896,7 @@ class TermKeyIMEService : InputMethodService() {
                                 }
                             }
                         }
-                        false
+                        true
                     }
                     MotionEvent.ACTION_UP -> {
                         // 1. Check swipe-to-type gesture
@@ -918,7 +918,7 @@ class TermKeyIMEService : InputMethodService() {
                         // 2. Check swipe-up alternate symbol
                         if (hasMoved) {
                             val dy = startY - event.y
-                            if (dy > 30 && prefs.getBoolean("swipe_for_symbols", true)) {
+                            if (dy > 25 && prefs.getBoolean("swipe_for_symbols", true)) {
                                 feedbackVibrate(20)
                                 handleCharacterInput(chars.first, chars.second, useAlternate = true)
                                 return@setOnTouchListener true

@@ -20,4 +20,11 @@ class SpanishLexiconStoreTest {
         val corrected = store.correctSpelling("gracias")
         assertEquals("gracias", corrected)
     }
+
+    @Test
+    fun testSwipePrefixMatching() {
+        val candidates = store.lookupCandidates("term")
+        assertTrue(candidates.isNotEmpty())
+        assertTrue(candidates.any { it.text == "terminal" })
+    }
 }
