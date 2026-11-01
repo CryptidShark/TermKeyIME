@@ -19,6 +19,7 @@
         <item>Cyberpunk Purple</item>
         <item>Light Theme</item>
         <item>Crimson Red</item>
+        <item>Dynamic Wallpaper / System Theme</item>
     </string-array>
     <string-array name="keyboard_theme_values">
         <item>terminal_green</item>
@@ -27,6 +28,7 @@
         <item>cyberpunk</item>
         <item>light</item>
         <item>crimson</item>
+        <item>dynamic_system</item>
     </string-array>
     <string-array name="input_language_entries">
         <item>English (EN)</item>

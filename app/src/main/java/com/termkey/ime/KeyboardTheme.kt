@@ -70,6 +70,17 @@ object KeyboardTheme {
                 keyAltBgColor = 0xFF422525.toInt(),
                 keyActiveColor = 0xFFFF3333.toInt()
             )
+            "dynamic_system" -> KeyboardColorPalette(
+                surfaceColor = 0xFF181A20.toInt(),
+                surface2Color = 0xFF23262F.toInt(),
+                borderColor = 0xFF353945.toInt(),
+                textColor = 0xFFF4F5F6.toInt(),
+                textDimColor = 0xFF8C9097.toInt(),
+                accentColor = 0xFF6C5CE7.toInt(),
+                keyBgColor = 0xFF2B2F3A.toInt(),
+                keyAltBgColor = 0xFF353945.toInt(),
+                keyActiveColor = 0xFF6C5CE7.toInt()
+            )
             else -> { // terminal_green (default)
                 KeyboardColorPalette(
                     surfaceColor = 0xFF0D1117.toInt(),
