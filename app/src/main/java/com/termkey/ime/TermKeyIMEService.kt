@@ -352,9 +352,7 @@ class TermKeyIMEService : InputMethodService() {
             else -> {
                 val commonWords = listOf("the", "and", "that", "with", "this", "from", "they", "know", "want", "been", "good", "much", "some", "time", "very", "when", "come", "here", "just", "like", "long", "make", "many", "more", "only", "over", "such", "take", "than", "them", "well", "were", "hola", "gracias", "por", "favor", "terminal", "keyboard", "code", "run", "test", "build")
                 commonWords.firstOrNull { it.startsWith(traced) || it.contains(traced) }
-                    ?: commonWords.minByOrNull { word ->
-                        word.indices.count { i -> i >= traced.length || word[i] != traced[i] } + Math.abs(word.length - traced.length)
-                    } ?: traced
+                    ?: commonWords.minByOrNull { levenshteinDistance(it, traced) } ?: traced
             }
         }
     }
@@ -365,9 +363,9 @@ class TermKeyIMEService : InputMethodService() {
         try {
             cachedCharKeyBounds.clear()
             if (!isViewInitialized()) return
-            for ((viewId, chars) in charKeysMap) {
-                val v = rootView.findViewById<View>(viewId) ?: continue
-                if (!v.isVisible || v.width <= 0 || v.height <= 0) continue
+            charKeysMap.forEach { (viewId, chars) ->
+                val v = rootView.findViewById<View>(viewId) ?: return@forEach
+                if (!v.isVisible || v.width <= 0 || v.height <= 0) return@forEach
                 val loc = intArrayOf(0, 0)
                 v.getLocationOnScreen(loc)
                 val rect = Rect(loc[0], loc[1], loc[0] + v.width, loc[1] + v.height)
@@ -1221,23 +1219,40 @@ class TermKeyIMEService : InputMethodService() {
             feedbackSound()
         }
         val ic = currentInputConnection ?: return
-        var meta = 0
-        if (ctrlActive) {
-            meta = meta or KeyEvent.META_CTRL_ON or KeyEvent.META_CTRL_LEFT_ON
-            ctrlActive = false
-        }
-        if (altActive) {
-            meta = meta or KeyEvent.META_ALT_ON or KeyEvent.META_ALT_LEFT_ON
-            altActive = false
-        }
-        if (shiftActive) {
-            meta = meta or KeyEvent.META_SHIFT_ON or KeyEvent.META_SHIFT_LEFT_ON
-            shiftActive = false
-        }
+        val meta = (if (ctrlActive) KeyEvent.META_CTRL_ON or KeyEvent.META_CTRL_LEFT_ON else 0) or
+                (if (altActive) KeyEvent.META_ALT_ON or KeyEvent.META_ALT_LEFT_ON else 0) or
+                (if (shiftActive) KeyEvent.META_SHIFT_ON or KeyEvent.META_SHIFT_LEFT_ON else 0)
+        if (ctrlActive) ctrlActive = false
+        if (altActive) altActive = false
+        if (shiftActive) shiftActive = false
+
         val eventTime = System.currentTimeMillis()
         ic.sendKeyEvent(KeyEvent(eventTime, eventTime, KeyEvent.ACTION_DOWN, keyCode, 0, meta))
         ic.sendKeyEvent(KeyEvent(eventTime, eventTime, KeyEvent.ACTION_UP, keyCode, 0, meta))
         updateModifierUI()
+    }
+
+    private fun levenshteinDistance(lhs: CharSequence, rhs: CharSequence): Int {
+        val lhsLength = lhs.length
+        val rhsLength = rhs.length
+        var cost = IntArray(lhsLength + 1) { it }
+        var newCost = IntArray(lhsLength + 1)
+
+        for (i in 1..rhsLength) {
+            newCost[0] = i
+            for (j in 1..lhsLength) {
+                val match = if (lhs[j - 1] == rhs[i - 1]) 0 else 1
+                newCost[j] = minOf(
+                    cost[j] + 1,
+                    newCost[j - 1] + 1,
+                    cost[j - 1] + match,
+                )
+            }
+            val swap = cost
+            cost = newCost
+            newCost = swap
+        }
+        return cost[lhsLength]
     }
 
     // ── Modifier UI update ────────────────────────────────────────────────────
@@ -1870,7 +1885,7 @@ class TermKeyIMEService : InputMethodService() {
         }
     }
 
-    @Suppress("UNUSED_PARAMETER")
+    @Suppress("UNUSED_PARAMETER", "SameParameterValue")
     private fun clearChineseInput(commitCurrent: Boolean) {
         if (commitCurrent) {
             commitChineseSelection()
@@ -2743,12 +2758,12 @@ class TermKeyIMEService : InputMethodService() {
         }
     }
 
-    @Suppress("UNUSED_PARAMETER")
+    @Suppress("SameParameterValue")
     private fun showToast(text: String, duration: Int = Toast.LENGTH_SHORT) {
         Toast.makeText(this, text, duration).show()
     }
 
-    @Suppress("UNUSED_PARAMETER")
+    @Suppress("SameParameterValue")
     private fun showToast(resId: Int, duration: Int = Toast.LENGTH_SHORT) {
         Toast.makeText(this, resId, duration).show()
     }
