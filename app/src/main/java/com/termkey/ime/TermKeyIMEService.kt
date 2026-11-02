@@ -174,6 +174,10 @@ class TermKeyIMEService : InputMethodService() {
             R.id.key_arrow_right,
         )
 
+        private val COMPACT_ES_KEY_IDS = COMPACT_EN_KEY_IDS + setOf(
+            R.id.key_quote,
+        )
+
         private val COMPACT_SYMBOL_KEY_IDS = setOf(
             R.id.key_grave,
             R.id.key_1,
@@ -1347,6 +1351,7 @@ class TermKeyIMEService : InputMethodService() {
 
     private fun compactPunctuationOutput(viewId: Int): String? {
         if (layoutMode != KeyboardLayoutMode.COMPACT_EN && layoutMode != KeyboardLayoutMode.COMPACT_ES) return null
+        if (currentInputLang == InputLanguage.ES && viewId == R.id.key_quote) return null
         return when (viewId) {
             R.id.key_esc -> "!"
             R.id.key_backspace -> "?"
@@ -1402,8 +1407,14 @@ class TermKeyIMEService : InputMethodService() {
         if (layoutMode == KeyboardLayoutMode.COMPACT_SYMBOL) {
             return
         }
-        val isLetter = primary in 'a'..'z' || primary in 'á'..'ú' || primary == 'ñ'
-        val effectiveChar = if (useAlternate) alternate else primary
+        var effectivePrimary = primary
+        var effectiveAlternate = alternate
+        if (currentInputLang == InputLanguage.ES && primary == '\'' && alternate == '"') {
+            effectivePrimary = 'ñ'
+            effectiveAlternate = 'Ñ'
+        }
+        val isLetter = effectivePrimary in 'a'..'z' || effectivePrimary in 'A'..'Z' || effectivePrimary in 'á'..'ú' || effectivePrimary in 'Á'..'Ú' || effectivePrimary == 'ñ' || effectivePrimary == 'Ñ'
+        val effectiveChar = if (useAlternate) effectiveAlternate else effectivePrimary
 
         if (currentInputLang == InputLanguage.ES && isLetter && !ctrlActive && !altActive) {
             currentSpanishWord += effectiveChar
@@ -1569,12 +1580,17 @@ class TermKeyIMEService : InputMethodService() {
         val showVoice = prefs.getBoolean("show_voice_key", true)
         val showMacro = prefs.getBoolean("show_macro_bar", true)
         val showFn = prefs.getBoolean("show_fn_row", true)
-        val compactInvisibleKeys = setOf(
-            R.id.key_ctrl,
-            R.id.key_quote,
-        )
+        val compactInvisibleKeys = if (currentInputLang == InputLanguage.ES) {
+            setOf(R.id.key_ctrl)
+        } else {
+            setOf(
+                R.id.key_ctrl,
+                R.id.key_quote,
+            )
+        }
         val visibleCompactKeys = when (layoutMode) {
-            KeyboardLayoutMode.COMPACT_EN, KeyboardLayoutMode.COMPACT_ES -> COMPACT_EN_KEY_IDS
+            KeyboardLayoutMode.COMPACT_EN -> COMPACT_EN_KEY_IDS
+            KeyboardLayoutMode.COMPACT_ES -> COMPACT_ES_KEY_IDS
             KeyboardLayoutMode.COMPACT_SYMBOL -> COMPACT_SYMBOL_KEY_IDS
             KeyboardLayoutMode.FULL -> emptySet()
         }
@@ -1740,6 +1756,17 @@ class TermKeyIMEService : InputMethodService() {
             SYMBOL_KEY_LABELS + mapOf(
                 R.id.key_home to "ABC",
                 R.id.key_arrow_right to "↩",
+            )
+        } else if (currentInputLang == InputLanguage.ES) {
+            mapOf(
+                R.id.key_esc to "!",
+                R.id.key_backspace to "?",
+                R.id.key_home to "#+=",
+                R.id.key_end to ",",
+                R.id.key_delete to ".",
+                R.id.key_arrow_up to "⌫",
+                R.id.key_arrow_right to "↩",
+                R.id.key_quote to if (shiftActive) "Ñ" else "ñ",
             )
         } else {
             mapOf(
