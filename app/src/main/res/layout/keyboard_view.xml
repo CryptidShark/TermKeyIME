@@ -374,4 +374,12 @@
                 android:singleLine="true" />
         </LinearLayout>
     </LinearLayout>
+
+    <com.termkey.ime.SwipeTrailView
+        android:id="@+id/swipe_trail_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clickable="false"
+        android:focusable="false"
+        android:focusableInTouchMode="false" />
 </FrameLayout>

@@ -412,6 +412,7 @@ class TermKeyIMEService : InputMethodService() {
     private lateinit var llmActionRetry: TextView
     private lateinit var llmActionCancel: TextView
     private lateinit var adaptiveTouchDelegate: AdaptiveTouchDelegateGroup
+    private lateinit var swipeTrailView: SwipeTrailView
 
     // ── Prefs ────────────────────────────────────────────────────────────────
     private val prefs by lazy { PreferenceManager.getDefaultSharedPreferences(this) }
@@ -493,6 +494,7 @@ class TermKeyIMEService : InputMethodService() {
         wireKeys()
         wireLlmPanel()
         adaptiveTouchDelegate = AdaptiveTouchDelegateGroup(rootView)
+        swipeTrailView = rootView.findViewById(R.id.swipe_trail_view)
         rootView.touchDelegate = adaptiveTouchDelegate
         scheduleAdaptiveTouchTargetsUpdate()
 
@@ -585,6 +587,7 @@ class TermKeyIMEService : InputMethodService() {
         if (::macroScrollView.isInitialized) macroScrollView.setBackgroundColor(palette.surface2Color)
         if (::candidateScrollView.isInitialized) candidateScrollView.setBackgroundColor(palette.surface2Color)
         if (::macroSeparator.isInitialized) macroSeparator.setBackgroundColor(palette.borderColor)
+        if (::swipeTrailView.isInitialized) swipeTrailView.setTrailColor(palette.accentColor)
 
         val applyToView: (View?) -> Unit = { view ->
             when (view) {
@@ -926,6 +929,9 @@ class TermKeyIMEService : InputMethodService() {
                                 if (cachedCharKeyBounds.isEmpty()) {
                                     initCharKeyBounds(charKeys)
                                 }
+                                val loc = intArrayOf(0, 0)
+                                swipeTrailView.getLocationOnScreen(loc)
+                                swipeTrailView.startPath(rawX - loc[0], rawY - loc[1])
                             }
                             true
                         }
@@ -942,12 +948,16 @@ class TermKeyIMEService : InputMethodService() {
                                         swipeTraceChars.append(touchedChar)
                                     }
                                 }
+                                val loc = intArrayOf(0, 0)
+                                swipeTrailView.getLocationOnScreen(loc)
+                                swipeTrailView.addPoint(rawX - loc[0], rawY - loc[1])
                             }
                             true
                         }
                         MotionEvent.ACTION_UP -> {
                             view.isPressed = false
                             view.performClick()
+                            swipeTrailView.clearPath()
                             // 1. Check swipe-to-type gesture
                             if (hasMoved && prefs.getBoolean("swipe_typing_enabled", true) && swipeTraceChars.length >= 2) {
                                 isSwipeTypingActive = false
@@ -1013,6 +1023,7 @@ class TermKeyIMEService : InputMethodService() {
                             view.isPressed = false
                             isSwipeTypingActive = false
                             swipeTraceChars.clear()
+                            swipeTrailView.clearPath()
                             true
                         }
                         else -> false
