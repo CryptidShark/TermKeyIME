@@ -27,6 +27,8 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.core.content.ContextCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
 import androidx.preference.PreferenceManager
 import kotlin.math.hypot
@@ -458,6 +460,20 @@ class TermKeyIMEService : InputMethodService() {
         swipeTrailView = rootView.findViewById(R.id.keyboard_content)
         rootView.touchDelegate = adaptiveTouchDelegate
         scheduleAdaptiveTouchTargetsUpdate()
+
+        ViewCompat.setOnApplyWindowInsetsListener(rootView) { v, insets ->
+            val navInsets = insets.getInsets(
+                WindowInsetsCompat.Type.navigationBars() or WindowInsetsCompat.Type.systemGestures(),
+            )
+            val bottomPadding = navInsets.bottom
+            v.setPadding(
+                v.paddingLeft,
+                v.paddingTop,
+                v.paddingRight,
+                bottomPadding,
+            )
+            insets
+        }
 
         return rootView
     }
@@ -1810,7 +1826,7 @@ class TermKeyIMEService : InputMethodService() {
         updateKeyWeight(R.id.key_enter, 2.0f)
         updateKeyWeight(R.id.key_arrow_right, if (layoutMode == KeyboardLayoutMode.FULL) 1.0f else 1.4f)
         updateKeyWeight(R.id.key_ctrl, if (layoutMode == KeyboardLayoutMode.FULL) 1.5f else 0.5f)
-        updateKeyWeight(R.id.key_quote, if (layoutMode == KeyboardLayoutMode.FULL) 1.0f else 0.5f)
+        updateKeyWeight(R.id.key_quote, 1.0f)
         updateKeyWeight(R.id.key_esc, if (layoutMode == KeyboardLayoutMode.FULL) 1.3f else 1.0f)
         updateKeyWeight(R.id.key_alt, if (layoutMode == KeyboardLayoutMode.FULL) 1.3f else 1.0f)
         updateKeyWeight(R.id.key_end, if (layoutMode == KeyboardLayoutMode.FULL) 1.1f else 1.0f)
