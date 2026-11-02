@@ -424,6 +424,7 @@ class TermKeyIMEService : InputMethodService() {
     private lateinit var keyRows: List<LinearLayout>
     private lateinit var languageKey: TextView
     private lateinit var numbersKey: TextView
+    private lateinit var numericPad: View
     private lateinit var llmPanel: View
     private lateinit var llmPanelTitle: TextView
     private lateinit var llmPanelStatus: TextView
@@ -509,6 +510,8 @@ class TermKeyIMEService : InputMethodService() {
         buildMacroBar()
         wireKeys()
         wireLlmPanel()
+        wireNumericPad()
+        numericPad = rootView.findViewById(R.id.numeric_pad)
         adaptiveTouchDelegate = AdaptiveTouchDelegateGroup(rootView)
         swipeTrailView = rootView.findViewById(R.id.keyboard_content)
         rootView.touchDelegate = adaptiveTouchDelegate
@@ -818,7 +821,7 @@ class TermKeyIMEService : InputMethodService() {
         wireDeleteKey(R.id.key_backspace, ::performBackspace, ::clearAllBeforeCursor)
         wireKey(R.id.key_space)     { sendSpace() }
         wireDeleteKey(R.id.key_delete, ::performForwardDelete, ::clearAllAfterCursor)
-        wireKey(R.id.key_emoji)     { showEmojiPickerDialog() }
+        wireKey(R.id.key_emoji)     { showEmojiBarInCandidateArea() }
         wireKey(R.id.key_numbers)   { toggleNumericMode() }
 
         wireCompactBackspaceSwapKey(R.id.key_arrow_up)
@@ -1746,6 +1749,17 @@ class TermKeyIMEService : InputMethodService() {
 
         rootView.findViewById<View>(R.id.key_row_1)?.visibility = View.VISIBLE
 
+        if (::numericPad.isInitialized) {
+            val isNumeric = (layoutMode == KeyboardLayoutMode.COMPACT_NUMERIC)
+            numericPad.visibility = if (isNumeric) View.VISIBLE else View.GONE
+            if (isNumeric) {
+                keyRows.forEach { it.visibility = View.GONE }
+                fnRow.visibility = View.GONE
+                macroScrollView.visibility = View.GONE
+                macroSeparator.visibility = View.GONE
+            }
+        }
+
         if (::numbersKey.isInitialized) {
             numbersKey.text = if (layoutMode == KeyboardLayoutMode.COMPACT_NUMERIC) "ABC" else "123"
         }
@@ -2298,64 +2312,62 @@ class TermKeyIMEService : InputMethodService() {
         )
     }
 
-    private fun showEmojiPickerDialog() {
-        feedbackVibrate(18)
+    private fun showEmojiBarInCandidateArea() {
+        feedbackVibrate(14)
         feedbackSound()
-        val emojis = listOf(
-            "😀", "😃", "😄", "😁", "😆", "😅", "🤣", "😂", "🙂", "🙃", "😉", "😊", "😇",
-            "🥰", "😍", "🤩", "😘", "😗", "😚", "😙", "😋", "😛", "😜", "🤪", "😝", "🤑",
-            "🤗", "🤭", "🤫", "🤔", "🤐", "🤨", "😐", "😑", "😶", "😏", "😒", "🙄", "😬",
-            "😌", "😔", "😪", "🤤", "😴", "😷", "🤒", "🤕", "🤢", "🤮", "🤧", "🥵", "🥶",
-            "🥳", "😎", "🤓", "🧐", "😕", "😟", "🙁", "😮", "😯", "😲", "😳", "🥺", "😦",
-            "❤️", "🧡", "💛", "💚", "💙", "💜", "🖤", "🤍", "🤎", "💔", "💕", "💞", "💓",
-            "👍", "👎", "👏", "🙌", "👐", "🤲", "🤝", "🙏", "💪", "👊", "✊", "🤛", "🤜",
-            "🔥", "✨", "⭐", "🌟", "💫", "💥", "💯", "💢", "💬", "💭", "💤", "🚀", "💡",
-            "🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼", "🐨", "🐯", "🦁", "🐮", "🐷",
-            "🍎", "🍏", "🍐", "🍊", "🍋", "🍌", "🍉", "🍇", "🍓", "🍒", "🍑", "🍍", "🥥",
-            "⚽", "🏀", "🏈", "⚾", "🎾", "🏐", "🏉", "🥏", "🎱", "🏓", "🏸", "☕", "🍺"
-        )
-
-        val gridLayout = android.widget.GridLayout(this).apply {
-            columnCount = 7
-            setPadding(16, 16, 16, 16)
-        }
-
-        val scrollView = android.widget.ScrollView(this).apply {
-            addView(gridLayout)
-        }
-
-        val dialog = AlertDialog.Builder(this)
-            .setTitle(getString(R.string.emoji_dialog_title))
-            .setView(scrollView)
-            .setNegativeButton(android.R.string.cancel, null)
-            .create()
-
-        try {
-            dialog.window?.let { window ->
-                window.setType(WindowManager.LayoutParams.TYPE_APPLICATION_ATTACHED_DIALOG)
-                window.attributes = window.attributes.also {
-                    it.token = rootView.windowToken
-                }
-            }
-        } catch (_: Exception) {}
-
+        if (!::candidateContainer.isInitialized) return
+        candidateContainer.removeAllViews()
+        val emojis = listOf("😀", "😃", "😄", "😁", "😆", "😅", "🤣", "😂", "😊", "😇", "🥰", "😍", "🤩", "😘", "❤️", "👍", "🔥", "✨", "🚀")
         emojis.forEach { emoji ->
-            val btn = TextView(this).apply {
-                text = emoji
-                textSize = 24f
-                gravity = android.view.Gravity.CENTER
-                setPadding(12, 12, 12, 12)
-                setOnClickListener {
-                    feedbackVibrate(12)
-                    feedbackSound()
-                    currentInputConnection?.commitText(emoji, 1)
-                    dialog.dismiss()
-                }
+            val btn = layoutInflater.inflate(R.layout.macro_button, candidateContainer, false) as TextView
+            btn.text = emoji
+            btn.textSize = 18f
+            btn.setOnClickListener {
+                feedbackVibrate(12)
+                feedbackSound()
+                currentInputConnection?.commitText(emoji, 1)
             }
-            gridLayout.addView(btn)
+            candidateContainer.addView(btn)
         }
+        candidateScrollView.visibility = View.VISIBLE
+    }
 
-        dialog.show()
+    private fun wireNumericPad() {
+        if (!::rootView.isInitialized) return
+        val numMap = mapOf(
+            R.id.num_1 to "1",
+            R.id.num_2 to "2",
+            R.id.num_3 to "3",
+            R.id.num_4 to "4",
+            R.id.num_5 to "5",
+            R.id.num_6 to "6",
+            R.id.num_7 to "7",
+            R.id.num_8 to "8",
+            R.id.num_9 to "9",
+            R.id.num_0 to "0",
+            R.id.num_dot to ".",
+            R.id.num_comma to ",",
+        )
+        numMap.forEach { (viewId, charStr) ->
+            rootView.findViewById<View>(viewId)?.setOnClickListener {
+                feedbackVibrate(14)
+                feedbackSound()
+                currentInputConnection?.commitText(charStr, 1)
+            }
+        }
+        rootView.findViewById<View>(R.id.num_backspace)?.setOnClickListener {
+            performBackspace()
+        }
+        rootView.findViewById<View>(R.id.num_enter)?.setOnClickListener {
+            sendEnter()
+        }
+        rootView.findViewById<View>(R.id.num_space)?.setOnClickListener {
+            sendSpace()
+        }
+        rootView.findViewById<View>(R.id.num_abc)?.setOnClickListener {
+            feedbackVibrate(15)
+            toggleNumericMode()
+        }
     }
 
     private fun handleNumericModeCharacterKey(viewId: Int): Boolean {

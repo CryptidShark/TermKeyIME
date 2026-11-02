@@ -218,6 +218,71 @@
             <TextView android:id="@+id/key_arrow_right" style="@style/Key.Arrow" android:text="→"      android:layout_weight="1" />
         </LinearLayout>
 
+        <!-- Numeric Keypad (matches user reference image) -->
+        <LinearLayout
+            android:id="@+id/numeric_pad"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone"
+            android:paddingStart="4dp"
+            android:paddingEnd="4dp"
+            android:paddingTop="2dp"
+            android:paddingBottom="2dp">
+
+            <!-- Num Row 1: 1, 2, 3, Backspace -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp">
+                <TextView android:id="@+id/num_1" style="@style/Key" android:text="1" android:layout_weight="1" />
+                <TextView android:id="@+id/num_2" style="@style/Key" android:text="2" android:layout_weight="1" />
+                <TextView android:id="@+id/num_3" style="@style/Key" android:text="3" android:layout_weight="1" />
+                <TextView android:id="@+id/num_backspace" style="@style/Key.Wide" android:text="⌫" android:layout_weight="1.5" />
+            </LinearLayout>
+
+            <!-- Num Row 2: 4, 5, 6, Done/Enter -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp">
+                <TextView android:id="@+id/num_4" style="@style/Key" android:text="4" android:layout_weight="1" />
+                <TextView android:id="@+id/num_5" style="@style/Key" android:text="5" android:layout_weight="1" />
+                <TextView android:id="@+id/num_6" style="@style/Key" android:text="6" android:layout_weight="1" />
+                <TextView android:id="@+id/num_enter" style="@style/Key.Enter" android:text="Done" android:layout_weight="1.5" />
+            </LinearLayout>
+
+            <!-- Num Row 3: 7, 8, 9, . -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp">
+                <TextView android:id="@+id/num_7" style="@style/Key" android:text="7" android:layout_weight="1" />
+                <TextView android:id="@+id/num_8" style="@style/Key" android:text="8" android:layout_weight="1" />
+                <TextView android:id="@+id/num_9" style="@style/Key" android:text="9" android:layout_weight="1" />
+                <TextView android:id="@+id/num_dot" style="@style/Key" android:text="." android:layout_weight="1.5" />
+            </LinearLayout>
+
+            <!-- Num Row 4: ABC, 0, Space, , -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp">
+                <TextView android:id="@+id/num_abc" style="@style/Key.Mode" android:text="ABC" android:layout_weight="1" />
+                <TextView android:id="@+id/num_0" style="@style/Key" android:text="0" android:layout_weight="1" />
+                <TextView android:id="@+id/num_space" style="@style/Key.Space" android:text="SPACE" android:layout_weight="2" />
+                <TextView android:id="@+id/num_comma" style="@style/Key" android:text="," android:layout_weight="1" />
+            </LinearLayout>
+        </LinearLayout>
+
         <!-- LLM / AI tool action panel -->
         <LinearLayout
             android:id="@+id/llm_panel"
