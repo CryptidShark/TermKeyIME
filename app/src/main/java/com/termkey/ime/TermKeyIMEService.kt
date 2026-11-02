@@ -1551,6 +1551,24 @@ class TermKeyIMEService : InputMethodService() {
         candidateScrollView.visibility = View.VISIBLE
     }
 
+    private fun rebuildEmojiBar() {
+        if (!::candidateContainer.isInitialized) return
+        candidateContainer.removeAllViews()
+        val quickItems = listOf("😊", "😂", "❤️", "👍", "🔥", "🎉", "🙏", "🤣", "😍", "✨", "😎", "👏", "🥳", "💡", "🚀", "💯", "@", "#", "$", "%", "&")
+        quickItems.forEach { item ->
+            val btn = layoutInflater.inflate(R.layout.macro_button, candidateContainer, false) as TextView
+            btn.text = item
+            btn.textSize = 16f
+            btn.setOnClickListener {
+                feedbackVibrate(12)
+                feedbackSound()
+                currentInputConnection?.commitText(item, 1)
+            }
+            candidateContainer.addView(btn)
+        }
+        candidateScrollView.visibility = View.VISIBLE
+    }
+
     private fun refreshCandidateArea() {
         if (!::candidateScrollView.isInitialized) return
         when {
@@ -1559,16 +1577,14 @@ class TermKeyIMEService : InputMethodService() {
                 if (candidates.isNotEmpty()) {
                     rebuildSpanishCandidateBar(candidates)
                 } else {
-                    candidateContainer.removeAllViews()
-                    candidateScrollView.visibility = View.GONE
+                    rebuildEmojiBar()
                 }
             }
             shouldShowLlmToolBar() -> {
                 rebuildLlmToolBar()
             }
             else -> {
-                candidateContainer.removeAllViews()
-                candidateScrollView.visibility = View.GONE
+                rebuildEmojiBar()
             }
         }
     }
@@ -1808,9 +1824,10 @@ class TermKeyIMEService : InputMethodService() {
             mapOf(
                 R.id.key_esc to "!",
                 R.id.key_backspace to "?",
-                R.id.key_home to "#+=",
+                R.id.key_home to "!#1",
                 R.id.key_end to ",",
                 R.id.key_delete to ".",
+                R.id.key_space to "Español (ES)",
                 R.id.key_arrow_up to "⌫",
                 R.id.key_arrow_right to "↩",
                 R.id.key_quote to if (shiftActive) "Ñ" else "ñ",
@@ -1819,9 +1836,10 @@ class TermKeyIMEService : InputMethodService() {
             mapOf(
                 R.id.key_esc to "!",
                 R.id.key_backspace to "?",
-                R.id.key_home to "#+=",
+                R.id.key_home to "!#1",
                 R.id.key_end to ",",
                 R.id.key_delete to ".",
+                R.id.key_space to "English (US)",
                 R.id.key_arrow_up to "⌫",
                 R.id.key_arrow_right to "↩",
             )

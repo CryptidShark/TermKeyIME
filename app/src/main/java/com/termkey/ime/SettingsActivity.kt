@@ -10,6 +10,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.preference.EditTextPreference
+import androidx.preference.ListPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 
@@ -46,6 +47,7 @@ class SettingsActivity : AppCompatActivity() {
         override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
             setPreferencesFromResource(R.xml.preferences, rootKey)
 
+            configureAppearancePreferences()
             configureVoicePreferences()
             configureLlmPreferences()
 
@@ -73,6 +75,21 @@ class SettingsActivity : AppCompatActivity() {
             updateVoicePermissionSummary()
         }
 
+        private fun configureAppearancePreferences() {
+            findPreference<ListPreference>("keyboard_theme")?.apply {
+                summaryProvider = ListPreference.SimpleSummaryProvider.getInstance()
+            }
+            findPreference<ListPreference>("keyboard_font")?.apply {
+                summaryProvider = ListPreference.SimpleSummaryProvider.getInstance()
+            }
+            findPreference<ListPreference>("key_text_size")?.apply {
+                summaryProvider = ListPreference.SimpleSummaryProvider.getInstance()
+            }
+            findPreference<ListPreference>("key_height")?.apply {
+                summaryProvider = ListPreference.SimpleSummaryProvider.getInstance()
+            }
+        }
+
         private fun configureVoicePreferences() {
             findPreference<Preference>("voice_request_permission")?.setOnPreferenceClickListener {
                 voicePermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
@@ -84,7 +101,7 @@ class SettingsActivity : AppCompatActivity() {
                     pref.text?.takeIf { it.isNotBlank() } ?: getString(R.string.pref_value_not_set)
                 }
                 setOnBindEditTextListener { editText ->
-                    editText.setSingleLine(true)
+                    editText.isSingleLine = true
                 }
             }
 
@@ -97,7 +114,7 @@ class SettingsActivity : AppCompatActivity() {
                     }
                 }
                 setOnBindEditTextListener { editText ->
-                    editText.setSingleLine(true)
+                    editText.isSingleLine = true
                 }
             }
 
@@ -106,7 +123,7 @@ class SettingsActivity : AppCompatActivity() {
                     pref.text?.takeIf { it.isNotBlank() } ?: getString(R.string.pref_value_not_set)
                 }
                 setOnBindEditTextListener { editText ->
-                    editText.setSingleLine(true)
+                    editText.isSingleLine = true
                 }
             }
 
@@ -115,7 +132,7 @@ class SettingsActivity : AppCompatActivity() {
                     pref.text?.takeIf { it.isNotBlank() } ?: "es-ES"
                 }
                 setOnBindEditTextListener { editText ->
-                    editText.setSingleLine(true)
+                    editText.isSingleLine = true
                 }
             }
         }
@@ -126,7 +143,7 @@ class SettingsActivity : AppCompatActivity() {
                     pref.text?.takeIf { it.isNotBlank() } ?: getString(R.string.pref_value_not_set)
                 }
                 setOnBindEditTextListener { editText ->
-                    editText.setSingleLine(true)
+                    editText.isSingleLine = true
                 }
             }
 
@@ -139,7 +156,7 @@ class SettingsActivity : AppCompatActivity() {
                     }
                 }
                 setOnBindEditTextListener { editText ->
-                    editText.setSingleLine(true)
+                    editText.isSingleLine = true
                 }
             }
 
@@ -148,7 +165,7 @@ class SettingsActivity : AppCompatActivity() {
                     pref.text?.takeIf { it.isNotBlank() } ?: getString(R.string.pref_value_not_set)
                 }
                 setOnBindEditTextListener { editText ->
-                    editText.setSingleLine(true)
+                    editText.isSingleLine = true
                 }
             }
         }
