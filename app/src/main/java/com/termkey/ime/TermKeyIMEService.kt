@@ -410,7 +410,7 @@ class TermKeyIMEService : InputMethodService() {
     private lateinit var llmActionRetry: TextView
     private lateinit var llmActionCancel: TextView
     private lateinit var adaptiveTouchDelegate: AdaptiveTouchDelegateGroup
-    private lateinit var swipeTrailView: SwipeTrailView
+    private lateinit var swipeTrailView: KeyboardContentView
 
     // ── Prefs ────────────────────────────────────────────────────────────────
     private val prefs by lazy { PreferenceManager.getDefaultSharedPreferences(this) }
@@ -496,7 +496,7 @@ class TermKeyIMEService : InputMethodService() {
         wireKeys()
         wireLlmPanel()
         adaptiveTouchDelegate = AdaptiveTouchDelegateGroup(rootView)
-        swipeTrailView = rootView.findViewById(R.id.swipe_trail_view)
+        swipeTrailView = rootView.findViewById(R.id.keyboard_content)
         rootView.touchDelegate = adaptiveTouchDelegate
         scheduleAdaptiveTouchTargetsUpdate()
 
