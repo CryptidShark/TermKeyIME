@@ -1,6 +1,5 @@
 package com.termkey.ime
 
-import android.content.pm.PackageManager
 import android.graphics.Rect
 import android.inputmethodservice.InputMethodService
 import android.media.AudioManager
@@ -17,16 +16,11 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewConfiguration
-import android.view.WindowManager
-import android.view.animation.AlphaAnimation
-import android.view.animation.Animation
-import android.view.animation.LinearInterpolator
 import android.view.inputmethod.EditorInfo
 import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -2383,12 +2377,7 @@ class TermKeyIMEService : InputMethodService() {
         }
     }
 
-    private fun handleNumericModeCharacterKey(viewId: Int): Boolean {
-        if (layoutMode != KeyboardLayoutMode.COMPACT_NUMERIC) return false
-        val output = NUMERIC_KEY_LABELS[viewId] ?: return false
-        currentInputConnection?.commitText(output, 1)
-        return true
-    }
+
 
     private fun toggleNumericMode() {
         if (layoutMode == KeyboardLayoutMode.COMPACT_NUMERIC) {
