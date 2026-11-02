@@ -90,7 +90,7 @@
             android:key="voice_language"
             android:title="@string/pref_voice_language"
             android:summary="@string/pref_voice_language_summary"
-            android:defaultValue="zh-CN" />
+            android:defaultValue="es-ES" />
     </PreferenceCategory>
 
     <PreferenceCategory android:title="@string/pref_category_llm">
@@ -122,16 +122,6 @@
         <Preference
             android:key="reset_macros"
             android:title="@string/pref_reset_macros" />
-    </PreferenceCategory>
-
-    <PreferenceCategory android:title="@string/pref_category_chinese">
-        <Preference
-            android:key="import_custom_dict"
-            android:title="@string/pref_import_custom_dict"
-            android:summary="@string/pref_import_custom_dict_summary" />
-        <Preference
-            android:key="clear_custom_dict"
-            android:title="@string/pref_clear_custom_dict" />
     </PreferenceCategory>
 
 </PreferenceScreen>
