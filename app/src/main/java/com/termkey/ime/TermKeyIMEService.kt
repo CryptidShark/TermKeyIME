@@ -824,6 +824,17 @@ class TermKeyIMEService : InputMethodService() {
         wireKey(R.id.key_emoji)     { showEmojiBarInCandidateArea() }
         wireKey(R.id.key_numbers)   { toggleNumericMode() }
 
+        COMPACT_SYMBOL_KEY_IDS.forEach { viewId ->
+            rootView.findViewById<View>(viewId)?.setOnClickListener {
+                if (layoutMode == KeyboardLayoutMode.COMPACT_SYMBOL) {
+                    if (handleSymbolModeCharacterKey(viewId)) {
+                        feedbackVibrate(16)
+                        feedbackSound()
+                    }
+                }
+            }
+        }
+
         wireCompactBackspaceSwapKey(R.id.key_arrow_up)
         wireKey(R.id.key_arrow_down)  { sendKeyCode(KeyEvent.KEYCODE_DPAD_DOWN) }
         wireKey(R.id.key_arrow_left)  { sendKeyCode(KeyEvent.KEYCODE_DPAD_LEFT) }
@@ -1757,6 +1768,8 @@ class TermKeyIMEService : InputMethodService() {
                 fnRow.visibility = View.GONE
                 macroScrollView.visibility = View.GONE
                 macroSeparator.visibility = View.GONE
+            } else {
+                keyRows.forEach { it.visibility = View.VISIBLE }
             }
         }
 
