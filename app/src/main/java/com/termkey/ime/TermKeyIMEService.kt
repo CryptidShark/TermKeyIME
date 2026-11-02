@@ -353,17 +353,33 @@ class TermKeyIMEService : InputMethodService() {
         }
     }
 
-    private fun checkTouchOverCharKeys(rawX: Float, rawY: Float, charKeysMap: Map<Int, Pair<Char, Char>>): Char? {
-        for ((viewId, chars) in charKeysMap) {
-            val v = rootView.findViewById<View>(viewId) ?: continue
-            if (v.visibility != View.VISIBLE) continue
-            val loc = intArrayOf(0, 0)
-            v.getLocationOnScreen(loc)
-            val rect = Rect(loc[0], loc[1], loc[0] + v.width, loc[1] + v.height)
-            if (rect.contains(rawX.toInt(), rawY.toInt())) {
-                return chars.first
+    private val cachedCharKeyBounds = mutableListOf<Pair<Rect, Char>>()
+
+    private fun initCharKeyBounds(charKeysMap: Map<Int, Pair<Char, Char>>) {
+        try {
+            cachedCharKeyBounds.clear()
+            if (!isViewInitialized()) return
+            for ((viewId, chars) in charKeysMap) {
+                val v = rootView.findViewById<View>(viewId) ?: continue
+                if (!v.isVisible || v.width <= 0 || v.height <= 0) continue
+                val loc = intArrayOf(0, 0)
+                v.getLocationOnScreen(loc)
+                val rect = Rect(loc[0], loc[1], loc[0] + v.width, loc[1] + v.height)
+                cachedCharKeyBounds.add(rect to chars.first)
             }
-        }
+        } catch (_: Exception) {}
+    }
+
+    private fun getCharUnderPointer(rawX: Float, rawY: Float): Char? {
+        try {
+            val rx = rawX.toInt()
+            val ry = rawY.toInt()
+            for ((rect, ch) in cachedCharKeyBounds) {
+                if (rect.contains(rx, ry)) {
+                    return ch
+                }
+            }
+        } catch (_: Exception) {}
         return null
     }
 
@@ -478,12 +494,16 @@ class TermKeyIMEService : InputMethodService() {
     }
 
     override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {
-        super.onStartInputView(info, restarting)
-        // Reset modifier state on each new input field
-        resetModifiers()
-        clearChineseInput(commitCurrent = false)
-        dismissLlmPanel(cancelRequest = true)
-        applyInputTestOverrides(info)
+        try {
+            super.onStartInputView(info, restarting)
+            applyPreferences()
+            resetModifiers()
+            clearChineseInput(commitCurrent = false)
+            dismissLlmPanel(cancelRequest = true)
+            applyInputTestOverrides(info)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error in onStartInputView", e)
+        }
     }
 
     override fun onFinishInputView(finishingInput: Boolean) {
@@ -873,100 +893,114 @@ class TermKeyIMEService : InputMethodService() {
             var startY = 0f
             var hasMoved = false
             view.setOnTouchListener { _, event ->
-                if (layoutMode == KeyboardLayoutMode.COMPACT_SYMBOL) {
-                    return@setOnTouchListener false
-                }
-                val rawX = event.rawX
-                val rawY = event.rawY
-
-                when (event.action) {
-                    MotionEvent.ACTION_DOWN -> {
-                        startX = event.x
-                        startY = event.y
-                        hasMoved = false
-                        if (prefs.getBoolean("swipe_typing_enabled", true)) {
-                            isSwipeTypingActive = true
-                            swipeTraceChars.clear()
-                            swipeTraceChars.append(chars.first)
-                        }
-                        true
+                try {
+                    if (layoutMode == KeyboardLayoutMode.COMPACT_SYMBOL) {
+                        return@setOnTouchListener false
                     }
-                    MotionEvent.ACTION_MOVE -> {
-                        val dx = (event.x - startX).toDouble()
-                        val dy = (event.y - startY).toDouble()
-                        if (hypot(dx, dy) > 20f) {
-                            hasMoved = true
+                    val rawX = event.rawX
+                    val rawY = event.rawY
+
+                    when (event.action) {
+                        MotionEvent.ACTION_DOWN -> {
+                            view.isPressed = true
+                            startX = event.x
+                            startY = event.y
+                            hasMoved = false
+                            if (prefs.getBoolean("swipe_typing_enabled", true)) {
+                                isSwipeTypingActive = true
+                                swipeTraceChars.clear()
+                                swipeTraceChars.append(chars.first)
+                                initCharKeyBounds(charKeys)
+                            }
+                            true
                         }
-                        if (isSwipeTypingActive && prefs.getBoolean("swipe_typing_enabled", true)) {
-                            val touchedChar = checkTouchOverCharKeys(rawX, rawY, charKeys)
-                            if (touchedChar != null) {
-                                if (swipeTraceChars.isEmpty() || swipeTraceChars.last() != touchedChar) {
-                                    swipeTraceChars.append(touchedChar)
+                        MotionEvent.ACTION_MOVE -> {
+                            val dx = (event.x - startX).toDouble()
+                            val dy = (event.y - startY).toDouble()
+                            if (hypot(dx, dy) > 20f) {
+                                hasMoved = true
+                            }
+                            if (isSwipeTypingActive && prefs.getBoolean("swipe_typing_enabled", true)) {
+                                val touchedChar = getCharUnderPointer(rawX, rawY)
+                                if (touchedChar != null) {
+                                    if (swipeTraceChars.isEmpty() || swipeTraceChars.last() != touchedChar) {
+                                        swipeTraceChars.append(touchedChar)
+                                    }
                                 }
                             }
+                            true
                         }
-                        true
-                    }
-                    MotionEvent.ACTION_UP -> {
-                        view.performClick()
-                        // 1. Check swipe-to-type gesture
-                        if (hasMoved && prefs.getBoolean("swipe_typing_enabled", true) && swipeTraceChars.length >= 2) {
+                        MotionEvent.ACTION_UP -> {
+                            view.isPressed = false
+                            view.performClick()
+                            // 1. Check swipe-to-type gesture
+                            if (hasMoved && prefs.getBoolean("swipe_typing_enabled", true) && swipeTraceChars.length >= 2) {
+                                isSwipeTypingActive = false
+                                val traced = swipeTraceChars.toString()
+                                val word = matchSwipeWord(traced)
+                                swipeTraceChars.clear()
+                                if (!word.isNullOrBlank()) {
+                                    feedbackVibrate(24)
+                                    feedbackSound()
+                                    currentInputConnection?.commitText("$word ", 1)
+                                    currentSpanishPrefix = ""
+                                    refreshCandidateArea()
+                                    return@setOnTouchListener true
+                                }
+                            }
                             isSwipeTypingActive = false
-                            val traced = swipeTraceChars.toString()
-                            val word = matchSwipeWord(traced)
                             swipeTraceChars.clear()
-                            if (!word.isNullOrBlank()) {
-                                feedbackVibrate(24)
+
+                            // 2. Check swipe-up alternate symbol
+                            if (hasMoved) {
+                                val dy = startY - event.y
+                                if (dy > 25 && prefs.getBoolean("swipe_for_symbols", true)) {
+                                    feedbackVibrate(20)
+                                    handleCharacterInput(chars.first, chars.second, useAlternate = true)
+                                    return@setOnTouchListener true
+                                }
+                                return@setOnTouchListener true
+                            }
+
+                            // 3. Normal tap (click)
+                            if (handleSymbolModeCharacterKey(viewId)) {
+                                feedbackVibrate(16)
                                 feedbackSound()
-                                currentInputConnection?.commitText("$word ", 1)
-                                currentSpanishPrefix = ""
-                                refreshCandidateArea()
+                                if (shiftActive) {
+                                    shiftActive = false
+                                    updateModifierUI()
+                                }
                                 return@setOnTouchListener true
                             }
-                        }
-                        isSwipeTypingActive = false
-                        swipeTraceChars.clear()
-
-                        // 2. Check swipe-up alternate symbol
-                        if (hasMoved) {
-                            val dy = startY - event.y
-                            if (dy > 25 && prefs.getBoolean("swipe_for_symbols", true)) {
-                                feedbackVibrate(20)
-                                handleCharacterInput(chars.first, chars.second, useAlternate = true)
+                            if (handleCompactPunctuationKey(viewId)) {
+                                feedbackVibrate(16)
+                                feedbackSound()
+                                if (shiftActive) {
+                                    shiftActive = false
+                                    updateModifierUI()
+                                }
                                 return@setOnTouchListener true
                             }
-                            return@setOnTouchListener true
-                        }
-
-                        // 3. Normal tap (click)
-                        if (handleSymbolModeCharacterKey(viewId)) {
-                            feedbackVibrate(16)
+                            feedbackVibrate()
                             feedbackSound()
+                            handleCharacterInput(chars.first, chars.second, useAlternate = shiftActive)
                             if (shiftActive) {
                                 shiftActive = false
                                 updateModifierUI()
                             }
-                            return@setOnTouchListener true
+                            true
                         }
-                        if (handleCompactPunctuationKey(viewId)) {
-                            feedbackVibrate(16)
-                            feedbackSound()
-                            if (shiftActive) {
-                                shiftActive = false
-                                updateModifierUI()
-                            }
-                            return@setOnTouchListener true
+                        MotionEvent.ACTION_CANCEL -> {
+                            view.isPressed = false
+                            isSwipeTypingActive = false
+                            swipeTraceChars.clear()
+                            true
                         }
-                        feedbackVibrate()
-                        feedbackSound()
-                        handleCharacterInput(chars.first, chars.second, useAlternate = shiftActive)
-                        if (shiftActive) {
-                            shiftActive = false
-                            updateModifierUI()
-                        }
-                        true
+                        else -> false
                     }
-                    else -> false
+                } catch (_: Exception) {
+                    view.isPressed = false
+                    false
                 }
             }
         }
