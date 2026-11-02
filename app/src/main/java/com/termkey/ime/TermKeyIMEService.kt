@@ -456,6 +456,10 @@ class TermKeyIMEService : InputMethodService() {
 
     // ── IME lifecycle ────────────────────────────────────────────────────────
 
+    override fun onEvaluateFullscreenMode(): Boolean {
+        return false
+    }
+
     @Suppress("InflateParams")
     override fun onCreateInputView(): View {
         rootView = layoutInflater.inflate(R.layout.keyboard_view, null)
