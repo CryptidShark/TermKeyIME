@@ -514,6 +514,14 @@ class TermKeyIMEService : InputMethodService() {
         refreshCandidateArea()
     }
 
+    private fun isViewInitialized(): Boolean {
+        return ::rootView.isInitialized &&
+                ::candidateContainer.isInitialized &&
+                ::candidateScrollView.isInitialized &&
+                ::macroContainer.isInitialized &&
+                ::languageKey.isInitialized
+    }
+
     // ── Preferences ──────────────────────────────────────────────────────────
 
     private fun applyPreferences() {
@@ -909,6 +917,8 @@ class TermKeyIMEService : InputMethodService() {
                                 feedbackVibrate(24)
                                 feedbackSound()
                                 currentInputConnection?.commitText("$word ", 1)
+                                currentSpanishPrefix = ""
+                                refreshCandidateArea()
                                 return@setOnTouchListener true
                             }
                         }
@@ -923,6 +933,7 @@ class TermKeyIMEService : InputMethodService() {
                                 handleCharacterInput(chars.first, chars.second, useAlternate = true)
                                 return@setOnTouchListener true
                             }
+                            return@setOnTouchListener true
                         }
 
                         // 3. Normal tap (click)
@@ -1724,20 +1735,38 @@ class TermKeyIMEService : InputMethodService() {
     }
 
     private fun rebuildSpanishCandidateBar(candidates: List<SpanishCandidate>) {
-        candidateContainer.removeAllViews()
-        candidates.forEach { candidate ->
-            val view = layoutInflater.inflate(R.layout.candidate_item, candidateContainer, false) as TextView
-            view.text = candidate.text
-            view.setOnClickListener {
-                feedbackVibrate(14)
-                feedbackSound()
-                currentInputConnection?.commitText(candidate.text, 1)
-                currentSpanishPrefix = ""
-                refreshCandidateArea()
+        if (!isViewInitialized()) return
+        try {
+            candidateContainer.removeAllViews()
+            candidates.forEachIndexed { index, candidate ->
+                val itemView = layoutInflater.inflate(R.layout.candidate_item, candidateContainer, false)
+                val indexView = itemView.findViewById<TextView>(R.id.candidate_index)
+                val textView = itemView.findViewById<TextView>(R.id.candidate_text)
+                val pinyinView = itemView.findViewById<TextView>(R.id.candidate_pinyin)
+
+                indexView.text = "${index + 1}."
+                textView.text = candidate.text
+                pinyinView.visibility = View.GONE
+
+                if (index == 0) {
+                    textView.setTextColor(ContextCompat.getColor(this, R.color.terminal_green))
+                } else {
+                    textView.setTextColor(ContextCompat.getColor(this, R.color.terminal_text))
+                }
+
+                itemView.setOnClickListener {
+                    feedbackVibrate(14)
+                    feedbackSound()
+                    currentInputConnection?.commitText("${candidate.text} ", 1)
+                    currentSpanishPrefix = ""
+                    refreshCandidateArea()
+                }
+                candidateContainer.addView(itemView)
             }
-            candidateContainer.addView(view)
+            candidateScrollView.visibility = if (candidates.isNotEmpty()) View.VISIBLE else View.GONE
+        } catch (e: Exception) {
+            Log.e(TAG, "Error rebuilding Spanish candidate bar", e)
         }
-        candidateScrollView.visibility = View.VISIBLE
     }
 
     private fun shouldShowLlmToolBar(): Boolean {
