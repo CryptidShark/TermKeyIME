@@ -1,7 +1,6 @@
 package com.termkey.ime
 
 import android.Manifest
-import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.Rect
 import android.inputmethodservice.InputMethodService
@@ -23,13 +22,14 @@ import android.view.animation.Animation
 import android.view.animation.AlphaAnimation
 import android.view.animation.LinearInterpolator
 import android.view.inputmethod.EditorInfo
-import android.view.inputmethod.InputConnection
 import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.core.content.ContextCompat
+import androidx.core.view.isVisible
 import androidx.preference.PreferenceManager
+import kotlin.math.hypot
 
 /**
  * TermKeyIMEService — the main InputMethodService.
@@ -414,10 +414,10 @@ class TermKeyIMEService : InputMethodService() {
     private val vibrator: Vibrator? by lazy {
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                (getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager)?.defaultVibrator
+                (getSystemService(VIBRATOR_MANAGER_SERVICE) as? VibratorManager)?.defaultVibrator
             } else {
                 @Suppress("DEPRECATION")
-                getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+                getSystemService(VIBRATOR_SERVICE) as? Vibrator
             }
         } catch (_: Exception) {
             null
@@ -427,7 +427,7 @@ class TermKeyIMEService : InputMethodService() {
     // ── AudioManager ─────────────────────────────────────────────────────────
     private val audioManager: AudioManager? by lazy {
         try {
-            getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+            getSystemService(AUDIO_SERVICE) as? AudioManager
         } catch (_: Exception) {
             null
         }
@@ -435,6 +435,7 @@ class TermKeyIMEService : InputMethodService() {
 
     // ── IME lifecycle ────────────────────────────────────────────────────────
 
+    @Suppress("InflateParams")
     override fun onCreateInputView(): View {
         rootView = layoutInflater.inflate(R.layout.keyboard_view, null)
         macroScrollView = rootView.findViewById(R.id.macro_scroll)
@@ -891,9 +892,9 @@ class TermKeyIMEService : InputMethodService() {
                         true
                     }
                     MotionEvent.ACTION_MOVE -> {
-                        val dx = event.x - startX
-                        val dy = event.y - startY
-                        if (Math.hypot(dx.toDouble(), dy.toDouble()) > 20f) {
+                        val dx = (event.x - startX).toDouble()
+                        val dy = (event.y - startY).toDouble()
+                        if (hypot(dx, dy) > 20f) {
                             hasMoved = true
                         }
                         if (isSwipeTypingActive && prefs.getBoolean("swipe_typing_enabled", true)) {
@@ -907,6 +908,7 @@ class TermKeyIMEService : InputMethodService() {
                         true
                     }
                     MotionEvent.ACTION_UP -> {
+                        view.performClick()
                         // 1. Check swipe-to-type gesture
                         if (hasMoved && prefs.getBoolean("swipe_typing_enabled", true) && swipeTraceChars.length >= 2) {
                             isSwipeTypingActive = false
@@ -1063,12 +1065,6 @@ class TermKeyIMEService : InputMethodService() {
         }
     }
 
-    private fun sendBackspace() {
-        feedbackVibrate()
-        feedbackSound()
-        performBackspace()
-    }
-
     private fun performBackspace() {
         if (chineseMode && chineseEngine.hasPending()) {
             updateChineseState(chineseEngine.backspace(currentChineseContextBefore()))
@@ -1091,12 +1087,6 @@ class TermKeyIMEService : InputMethodService() {
         } else {
             ic.deleteSurroundingText(1, 0)
         }
-    }
-
-    private fun sendDelete() {
-        feedbackVibrate()
-        feedbackSound()
-        performForwardDelete()
     }
 
     private fun performForwardDelete() {
@@ -1286,6 +1276,7 @@ class TermKeyIMEService : InputMethodService() {
                 }
 
                 MotionEvent.ACTION_UP -> {
+                    view.performClick()
                     if (compactPunctuationMode) {
                         compactPunctuationMode = false
                         return@setOnTouchListener true
@@ -1364,6 +1355,7 @@ class TermKeyIMEService : InputMethodService() {
                 }
 
                 MotionEvent.ACTION_UP -> {
+                    view.performClick()
                     repeatRunnable?.let(repeatHandler::removeCallbacks)
                     if (swipeArmed) {
                         clearAllBeforeCursor()
@@ -1647,6 +1639,7 @@ class TermKeyIMEService : InputMethodService() {
         }
     }
 
+    @Suppress("SetTextI18n")
     private fun rebuildCandidateBar(candidates: List<ChineseCandidate>) {
         if (!::candidateContainer.isInitialized) return
         candidateContainer.removeAllViews()
@@ -1734,6 +1727,7 @@ class TermKeyIMEService : InputMethodService() {
         }
     }
 
+    @Suppress("SetTextI18n")
     private fun rebuildSpanishCandidateBar(candidates: List<SpanishCandidate>) {
         if (!isViewInitialized()) return
         try {
@@ -1818,6 +1812,7 @@ class TermKeyIMEService : InputMethodService() {
         }
     }
 
+    @Suppress("UNUSED_PARAMETER")
     private fun clearChineseInput(commitCurrent: Boolean) {
         if (commitCurrent) {
             commitChineseSelection()
@@ -1928,9 +1923,9 @@ class TermKeyIMEService : InputMethodService() {
         if (!::adaptiveTouchDelegate.isInitialized) return
 
         val visibleRows = buildList {
-            if (::fnRow.isInitialized && fnRow.visibility == View.VISIBLE) add(fnRow as ViewGroup)
+            if (::fnRow.isInitialized && fnRow.isVisible) add(fnRow as ViewGroup)
             if (::keyRows.isInitialized) {
-                keyRows.filterTo(this) { it.visibility == View.VISIBLE }
+                keyRows.filterTo(this) { it.isVisible }
             }
         }
         if (visibleRows.isEmpty()) {
@@ -1943,7 +1938,7 @@ class TermKeyIMEService : InputMethodService() {
             val keyBounds = buildList {
                 for (index in 0 until row.childCount) {
                     val child = row.getChildAt(index)
-                    if (child.visibility != View.VISIBLE || !child.isClickable || child.width <= 0 || child.height <= 0) continue
+                    if (!child.isVisible || !child.isClickable || child.width <= 0 || child.height <= 0) continue
                     add(child to getBoundsRelativeToHost(host, child))
                 }
             }.sortedBy { it.second.left }
@@ -2332,6 +2327,7 @@ class TermKeyIMEService : InputMethodService() {
         refreshCandidateArea()
     }
 
+    @Suppress("SetTextI18n")
     private fun updateLlmPanelUi() {
         if (!::llmPanel.isInitialized) return
         val preview = llmPreviewState
@@ -2362,6 +2358,7 @@ class TermKeyIMEService : InputMethodService() {
         setActionEnabled(llmActionReplace, preview.status == LlmPreviewStatus.SUCCESS)
     }
 
+    @Suppress("SetTextI18n")
     private fun rebuildLlmOptionChips(preview: LlmPreviewState) {
         if (!::llmOptionContainer.isInitialized) return
         llmOptionContainer.removeAllViews()
@@ -2671,12 +2668,7 @@ class TermKeyIMEService : InputMethodService() {
         if (!prefs.getBoolean("vibrate_on_keypress", true)) return
         val vib = vibrator ?: return
         try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                vib.vibrate(VibrationEffect.createOneShot(ms, VibrationEffect.DEFAULT_AMPLITUDE))
-            } else {
-                @Suppress("DEPRECATION")
-                vib.vibrate(ms)
-            }
+            vib.vibrate(VibrationEffect.createOneShot(ms, VibrationEffect.DEFAULT_AMPLITUDE))
         } catch (_: SecurityException) {
             // Ignore unavailable/blocked vibration instead of crashing the IME.
         } catch (_: Exception) {
@@ -2693,10 +2685,12 @@ class TermKeyIMEService : InputMethodService() {
         }
     }
 
+    @Suppress("UNUSED_PARAMETER")
     private fun showToast(text: String, duration: Int = Toast.LENGTH_SHORT) {
         Toast.makeText(this, text, duration).show()
     }
 
+    @Suppress("UNUSED_PARAMETER")
     private fun showToast(resId: Int, duration: Int = Toast.LENGTH_SHORT) {
         Toast.makeText(this, resId, duration).show()
     }
