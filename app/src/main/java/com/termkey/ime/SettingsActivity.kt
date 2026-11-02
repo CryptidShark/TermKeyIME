@@ -32,8 +32,15 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     class SettingsFragment : PreferenceFragmentCompat() {
-        companion object {
-            private const val AUDIO_PERMISSION_REQUEST = 1001
+        private val voicePermissionLauncher = registerForActivityResult(
+            ActivityResultContracts.RequestPermission(),
+        ) { granted ->
+            updateVoicePermissionSummary()
+            Toast.makeText(
+                context,
+                if (granted) R.string.voice_permission_granted else R.string.voice_permission_denied,
+                Toast.LENGTH_SHORT,
+            ).show()
         }
 
         private val importDictLauncher = registerForActivityResult(
@@ -110,26 +117,9 @@ class SettingsActivity : AppCompatActivity() {
             updateCustomDictSummary()
         }
 
-        override fun onRequestPermissionsResult(
-            requestCode: Int,
-            permissions: Array<out String>,
-            grantResults: IntArray,
-        ) {
-            super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-            if (requestCode != AUDIO_PERMISSION_REQUEST) return
-
-            val granted = grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED
-            updateVoicePermissionSummary()
-            Toast.makeText(
-                context,
-                if (granted) R.string.voice_permission_granted else R.string.voice_permission_denied,
-                Toast.LENGTH_SHORT,
-            ).show()
-        }
-
         private fun configureVoicePreferences() {
             findPreference<Preference>("voice_request_permission")?.setOnPreferenceClickListener {
-                requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), AUDIO_PERMISSION_REQUEST)
+                voicePermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                 true
             }
 

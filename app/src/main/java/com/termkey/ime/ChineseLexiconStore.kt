@@ -136,12 +136,22 @@ class ChineseLexiconStore(
 
         val ordered = scored.values
             .sortedWith(
-                compareByDescending<ScoredCandidate> { candidateKindPriority(it.kind) }
-                    .thenByDescending { it.consumedSyllables }
-                    .thenBy { it.segmentCount }
-                    .thenByDescending { it.score }
-                    .thenByDescending { it.text.length }
-                    .thenBy { it.text },
+                Comparator { a, b ->
+                    when {
+                        candidateKindPriority(b.kind) != candidateKindPriority(a.kind) ->
+                            candidateKindPriority(b.kind).compareTo(candidateKindPriority(a.kind))
+                        b.consumedSyllables != a.consumedSyllables ->
+                            b.consumedSyllables.compareTo(a.consumedSyllables)
+                        a.segmentCount != b.segmentCount ->
+                            a.segmentCount.compareTo(b.segmentCount)
+                        b.score != a.score ->
+                            b.score.compareTo(a.score)
+                        b.text.length != a.text.length ->
+                            b.text.length.compareTo(a.text.length)
+                        else ->
+                            a.text.compareTo(b.text)
+                    }
+                },
             )
         val candidates = preferConsumedLengthLadder(ordered) { it.consumedSyllables }
             .map {
@@ -485,11 +495,27 @@ class ChineseLexiconStore(
             pathCache[start] = candidates
                 .groupBy { it.text }
                 .values
-                .mapNotNull { sameText -> sameText.maxByOrNull { it.score } }
+                .mapNotNull { sameText ->
+                    var best: CandidatePath? = null
+                    for (path in sameText) {
+                        if (best == null || path.score > best.score) {
+                            best = path
+                        }
+                    }
+                    best
+                }
                 .sortedWith(
-                    compareByDescending<CandidatePath> { it.score }
-                        .thenBy { it.segmentCount }
-                        .thenByDescending { it.text.length },
+                    Comparator { a, b ->
+                        when {
+                            b.score != a.score ->
+                                b.score.compareTo(a.score)
+                            a.segmentCount != b.segmentCount ->
+                                a.segmentCount.compareTo(b.segmentCount)
+                            b.text.length != a.text.length ->
+                                b.text.length.compareTo(a.text.length)
+                            else -> 0
+                        }
+                    },
                 )
                 .take(PATH_BEAM_WIDTH)
         }
