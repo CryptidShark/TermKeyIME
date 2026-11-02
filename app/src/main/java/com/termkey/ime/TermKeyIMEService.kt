@@ -339,16 +339,22 @@ class TermKeyIMEService : InputMethodService() {
     private var shiftActive = false
     private var currentInputLang = InputLanguage.EN
     private val spanishLexiconStore by lazy { SpanishLexiconStore() }
-    private var currentSpanishPrefix = ""
+    private var currentSpanishWord = ""
     private var isSwipeTypingActive = false
     private val swipeTraceChars = StringBuilder()
 
     private fun matchSwipeWord(traced: String): String? {
         return when (currentInputLang) {
-            InputLanguage.ES -> spanishLexiconStore.lookupCandidates(traced).firstOrNull()?.text
+            InputLanguage.ES -> {
+                val candidates = spanishLexiconStore.lookupCandidates(traced)
+                candidates.firstOrNull()?.text ?: spanishLexiconStore.correctSpelling(traced)
+            }
             else -> {
-                val commonWords = listOf("the", "and", "that", "with", "this", "from", "they", "know", "want", "been", "good", "much", "some", "time", "very", "when", "come", "here", "just", "like", "long", "make", "many", "more", "only", "over", "such", "take", "than", "them", "well", "were", "hola", "gracias", "por", "favor")
-                commonWords.firstOrNull { it.startsWith(traced) || it.contains(traced) } ?: traced
+                val commonWords = listOf("the", "and", "that", "with", "this", "from", "they", "know", "want", "been", "good", "much", "some", "time", "very", "when", "come", "here", "just", "like", "long", "make", "many", "more", "only", "over", "such", "take", "than", "them", "well", "were", "hola", "gracias", "por", "favor", "terminal", "keyboard", "code", "run", "test", "build")
+                commonWords.firstOrNull { it.startsWith(traced) || it.contains(traced) }
+                    ?: commonWords.minByOrNull { word ->
+                        word.indices.count { i -> i >= traced.length || word[i] != traced[i] } + Math.abs(word.length - traced.length)
+                    } ?: traced
             }
         }
     }
@@ -531,6 +537,9 @@ class TermKeyIMEService : InputMethodService() {
         candidatesEnd: Int,
     ) {
         super.onUpdateSelection(oldSelStart, oldSelEnd, newSelStart, newSelEnd, candidatesStart, candidatesEnd)
+        if (newSelStart != newSelEnd) {
+            currentSpanishWord = ""
+        }
         refreshLlmPreviewValidity()
         refreshCandidateArea()
     }
@@ -867,6 +876,10 @@ class TermKeyIMEService : InputMethodService() {
             R.id.key_slash  to Pair('/', '?'),
         )
 
+        rootView.post {
+            initCharKeyBounds(charKeys)
+        }
+
         charKeys.forEach { (viewId, chars) ->
             val view = rootView.findViewById<View>(viewId) ?: return@forEach
             // Long-press for alternate symbol (if enabled)
@@ -910,7 +923,9 @@ class TermKeyIMEService : InputMethodService() {
                                 isSwipeTypingActive = true
                                 swipeTraceChars.clear()
                                 swipeTraceChars.append(chars.first)
-                                initCharKeyBounds(charKeys)
+                                if (cachedCharKeyBounds.isEmpty()) {
+                                    initCharKeyBounds(charKeys)
+                                }
                             }
                             true
                         }
@@ -942,8 +957,12 @@ class TermKeyIMEService : InputMethodService() {
                                 if (!word.isNullOrBlank()) {
                                     feedbackVibrate(24)
                                     feedbackSound()
-                                    currentInputConnection?.commitText("$word ", 1)
-                                    currentSpanishPrefix = ""
+                                    val ic = currentInputConnection
+                                    if (ic != null && currentInputLang == InputLanguage.ES && currentSpanishWord.isNotEmpty()) {
+                                        ic.deleteSurroundingText(currentSpanishWord.length, 0)
+                                        currentSpanishWord = ""
+                                    }
+                                    ic?.commitText("$word ", 1)
                                     refreshCandidateArea()
                                     return@setOnTouchListener true
                                 }
@@ -1104,15 +1123,9 @@ class TermKeyIMEService : InputMethodService() {
             updateChineseState(chineseEngine.backspace(currentChineseContextBefore()))
             return
         }
-        if (currentInputLang == InputLanguage.ES && currentSpanishPrefix.isNotEmpty()) {
-            currentSpanishPrefix = currentSpanishPrefix.dropLast(1)
-            if (currentSpanishPrefix.isNotEmpty()) {
-                currentInputConnection?.setComposingText(currentSpanishPrefix, 1)
-            } else {
-                currentInputConnection?.finishComposingText()
-            }
+        if (currentInputLang == InputLanguage.ES && currentSpanishWord.isNotEmpty()) {
+            currentSpanishWord = currentSpanishWord.dropLast(1)
             refreshCandidateArea()
-            return
         }
         val ic = currentInputConnection ?: return
         val selectedText = ic.getSelectedText(0)
@@ -1150,13 +1163,12 @@ class TermKeyIMEService : InputMethodService() {
             }
             return
         }
-        if (currentInputLang == InputLanguage.ES && currentSpanishPrefix.isNotEmpty()) {
+        if (currentInputLang == InputLanguage.ES) {
             feedbackVibrate()
             feedbackSound()
-            val bestCandidate = spanishLexiconStore.lookupCandidates(currentSpanishPrefix).firstOrNull()?.text ?: currentSpanishPrefix
-            currentInputConnection?.commitText("$bestCandidate ", 1)
-            currentSpanishPrefix = ""
+            currentSpanishWord = ""
             refreshCandidateArea()
+            currentInputConnection?.commitText(" ", 1)
             return
         }
         feedbackVibrate()
@@ -1536,10 +1548,10 @@ class TermKeyIMEService : InputMethodService() {
             return
         }
 
-        if (currentInputLang == InputLanguage.ES && isLetter && !ctrlActive && !altActive && !useAlternate) {
-            currentSpanishPrefix += effectiveChar
-            currentInputConnection?.setComposingText(currentSpanishPrefix, 1)
+        if (currentInputLang == InputLanguage.ES && isLetter && !ctrlActive && !altActive) {
+            currentSpanishWord += effectiveChar
             refreshCandidateArea()
+            sendChar(effectiveChar)
             return
         }
 
@@ -1559,12 +1571,7 @@ class TermKeyIMEService : InputMethodService() {
             commitChineseSelection()
         }
 
-        if (currentInputLang == InputLanguage.ES && currentSpanishPrefix.isNotEmpty()) {
-            val bestCandidate = spanishLexiconStore.lookupCandidates(currentSpanishPrefix).firstOrNull()?.text ?: currentSpanishPrefix
-            currentInputConnection?.commitText(bestCandidate, 1)
-            currentSpanishPrefix = ""
-            refreshCandidateArea()
-        }
+
 
         sendChar(effectiveChar)
     }
@@ -1578,7 +1585,7 @@ class TermKeyIMEService : InputMethodService() {
         chineseMode = (currentInputLang == InputLanguage.ZH)
         layoutMode = defaultLayoutModeForLanguage()
         clearChineseInput(commitCurrent = false)
-        currentSpanishPrefix = ""
+        currentSpanishWord = ""
         updateKeyboardLayoutUi()
     }
 
@@ -1742,8 +1749,8 @@ class TermKeyIMEService : InputMethodService() {
                     candidateScrollView.visibility = View.GONE
                 }
             }
-            currentInputLang == InputLanguage.ES && currentSpanishPrefix.isNotEmpty() && layoutMode != KeyboardLayoutMode.COMPACT_SYMBOL -> {
-                val candidates = spanishLexiconStore.lookupCandidates(currentSpanishPrefix)
+            currentInputLang == InputLanguage.ES && currentSpanishWord.isNotEmpty() && layoutMode != KeyboardLayoutMode.COMPACT_SYMBOL -> {
+                val candidates = spanishLexiconStore.lookupCandidates(currentSpanishWord)
                 if (candidates.isNotEmpty()) {
                     rebuildSpanishCandidateBar(candidates)
                 } else {
@@ -1785,8 +1792,14 @@ class TermKeyIMEService : InputMethodService() {
                 itemView.setOnClickListener {
                     feedbackVibrate(14)
                     feedbackSound()
-                    currentInputConnection?.commitText("${candidate.text} ", 1)
-                    currentSpanishPrefix = ""
+                    val ic = currentInputConnection
+                    if (ic != null && currentSpanishWord.isNotEmpty()) {
+                        ic.deleteSurroundingText(currentSpanishWord.length, 0)
+                        ic.commitText("${candidate.text} ", 1)
+                    } else {
+                        ic?.commitText("${candidate.text} ", 1)
+                    }
+                    currentSpanishWord = ""
                     refreshCandidateArea()
                 }
                 candidateContainer.addView(itemView)

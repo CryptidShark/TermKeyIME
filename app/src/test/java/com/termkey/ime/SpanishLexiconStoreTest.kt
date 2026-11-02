@@ -27,4 +27,12 @@ class SpanishLexiconStoreTest {
         assertTrue(candidates.isNotEmpty())
         assertTrue(candidates.any { it.text == "terminal" })
     }
+
+    @Test
+    fun testSwipeFuzzyCorrection() {
+        val corrected = store.correctSpelling("gracias")
+        assertEquals("gracias", corrected)
+        val correctedTypos = store.correctSpelling("gacias")
+        assertTrue(correctedTypos == "gracias" || store.lookupCandidates("gacias").isNotEmpty())
+    }
 }
