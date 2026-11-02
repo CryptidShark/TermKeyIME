@@ -1598,40 +1598,39 @@ class TermKeyIMEService : InputMethodService() {
         candidateScrollView.visibility = View.VISIBLE
     }
 
-    private fun rebuildEmojiBar() {
+
+
+    private fun rebuildEmptyCandidateBar() {
         if (!::candidateContainer.isInitialized) return
         candidateContainer.removeAllViews()
-        val quickItems = listOf("😊", "😂", "❤️", "👍", "🔥", "🎉", "🙏", "🤣", "😍", "✨", "😎", "👏", "🥳", "💡", "🚀", "💯", "@", "#", "$", "%", "&")
-        quickItems.forEach { item ->
-            val btn = layoutInflater.inflate(R.layout.macro_button, candidateContainer, false) as TextView
-            btn.text = item
-            btn.textSize = 16f
-            btn.setOnClickListener {
-                feedbackVibrate(12)
-                feedbackSound()
-                currentInputConnection?.commitText(item, 1)
-            }
-            candidateContainer.addView(btn)
+        val hintView = layoutInflater.inflate(R.layout.macro_button, candidateContainer, false) as TextView
+        hintView.text = when (currentInputLang) {
+            InputLanguage.ES -> "Escribe en español..."
+            InputLanguage.EN -> "TermKey Keyboard"
         }
+        hintView.setTextColor(ContextCompat.getColor(this, R.color.terminal_text_dim))
+        hintView.isEnabled = false
+        candidateContainer.addView(hintView)
         candidateScrollView.visibility = View.VISIBLE
     }
 
     private fun refreshCandidateArea() {
         if (!::candidateScrollView.isInitialized) return
+        candidateScrollView.visibility = View.VISIBLE
         when {
             currentInputLang == InputLanguage.ES && currentSpanishWord.isNotEmpty() && layoutMode != KeyboardLayoutMode.COMPACT_SYMBOL -> {
                 val candidates = spanishLexiconStore.lookupCandidates(currentSpanishWord)
                 if (candidates.isNotEmpty()) {
                     rebuildSpanishCandidateBar(candidates)
                 } else {
-                    rebuildEmojiBar()
+                    rebuildEmptyCandidateBar()
                 }
             }
             shouldShowLlmToolBar() -> {
                 rebuildLlmToolBar()
             }
             else -> {
-                rebuildEmojiBar()
+                rebuildEmptyCandidateBar()
             }
         }
     }
