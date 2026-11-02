@@ -5,11 +5,11 @@
     <string name="subtype_normal">English (US)</string>
     <string name="settings_title">TermKey Settings</string>
     <string name="input_test_title">Input Test</string>
-    <string name="input_test_hint">Use this page to verify Chinese Shuangpin, macros, voice input, delete gestures, and LLM tools on a real text field.</string>
+    <string name="input_test_hint">Use this page to verify macros, voice input, delete gestures, and LLM tools on a real text field.</string>
     <string name="input_test_editor_hint">Tap here and start typing with TermKey…</string>
     <string name="input_test_refocus">Focus Editor</string>
     <string name="input_test_switch_ime">Switch IME</string>
-    <string name="input_test_cases">Suggested checks: rawCode/candidate persistence, swipe-up clear, long-press delete haptics, polish options, voice preview, and macro insertion.</string>
+    <string name="input_test_cases">Suggested checks: swipe-up clear, long-press delete haptics, polish options, voice preview, and macro insertion.</string>
 
     <!-- Setup screen -->
     <string name="setup_title">TermKey Setup</string>
@@ -22,25 +22,27 @@
     <string name="setup_done">TermKey is active! You can now use it in any app.</string>
 
     <!-- Settings -->
-    <string name="pref_category_appearance">Appearance</string>
+    <string name="pref_category_appearance">Appearance &amp; Themes</string>
     <string name="pref_category_behavior">Behavior</string>
     <string name="pref_input_language">Default input language</string>
     <string name="pref_category_voice">Voice Input</string>
     <string name="pref_category_llm">LLM Tools</string>
     <string name="pref_category_macros">Macro Bar</string>
-    <string name="pref_category_chinese">Chinese Input</string>
-    <string name="pref_import_custom_dict">Import custom dictionary</string>
-    <string name="pref_import_custom_dict_summary">Load a text file with "pinyin word" pairs (one per line)</string>
-    <string name="pref_custom_dict_count">%d custom entries</string>
-    <string name="pref_clear_custom_dict">Clear custom dictionary</string>
-    <string name="custom_dict_imported">Imported %d entries.</string>
-    <string name="custom_dict_cleared">Custom dictionary cleared.</string>
-    <string name="custom_dict_import_failed">Import failed. Check file format.</string>
+    <string name="pref_category_custom_colors">Custom Theme Palette</string>
+
+    <string name="pref_keyboard_theme">Keyboard theme</string>
+    <string name="pref_keyboard_font">Keyboard font family</string>
+    <string name="pref_key_text_size">Key text size</string>
+    <string name="pref_key_height">Key height</string>
+    <string name="pref_custom_surface_color">Keyboard background color (#RRGGBB)</string>
+    <string name="pref_custom_key_bg_color">Key background color (#RRGGBB)</string>
+    <string name="pref_custom_text_color">Key text color (#RRGGBB)</string>
+    <string name="pref_custom_accent_color">Accent highlight color (#RRGGBB)</string>
+
     <string name="pref_show_fn_row">Show F1–F12 row</string>
     <string name="pref_show_fn_row_summary">Display function key row at top of keyboard</string>
     <string name="pref_show_macro_bar">Show macro bar</string>
     <string name="pref_show_macro_bar_summary">Show quick-insert command snippets above keyboard</string>
-    <string name="pref_key_height">Key height</string>
     <string name="pref_vibrate">Vibrate on keypress</string>
     <string name="pref_sound">Sound on keypress</string>
     <string name="pref_sticky_mod">Sticky modifier keys</string>
@@ -61,7 +63,7 @@
     <string name="pref_voice_resource_id">Volcengine Resource ID</string>
     <string name="pref_voice_resource_id_summary">Resource identifier such as volc.seedasr.sauc.concurrent</string>
     <string name="pref_voice_language">Language</string>
-    <string name="pref_voice_language_summary">Recognition language, for example zh-CN or en-US</string>
+    <string name="pref_voice_language_summary">Recognition language, for example es-ES or en-US</string>
     <string name="pref_show_llm_tools">Enable LLM text tools</string>
     <string name="pref_show_llm_tools_summary">Show AI tool chips when text is selected or available before the cursor</string>
     <string name="pref_llm_base_url">OpenAI-compatible Base URL</string>
@@ -111,7 +113,6 @@
     <string name="pref_value_not_set">Not set</string>
     <string name="pref_value_configured">Configured</string>
 
-    <string name="pref_keyboard_theme">Keyboard theme</string>
     <string name="pref_swipe_typing">Swipe-to-type gesture typing</string>
     <string name="pref_swipe_typing_summary">Swipe your finger across keys to type words automatically</string>
 
@@ -126,7 +127,6 @@
     <string name="key_shift">⇧</string>
     <string name="key_lang_en">EN</string>
     <string name="key_lang_es">ES</string>
-    <string name="key_lang_zh">中</string>
     <string name="key_mic_idle">MIC</string>
     <string name="key_mic_connecting">...</string>
     <string name="key_mic_recording">REC</string>

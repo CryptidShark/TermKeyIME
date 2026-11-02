@@ -5,11 +5,11 @@
     <string name="subtype_normal">Español (ES)</string>
     <string name="settings_title">Ajustes de TermKey</string>
     <string name="input_test_title">Prueba de Entrada</string>
-    <string name="input_test_hint">Usa esta página para verificar el Shuangpin chino, macros, entrada de voz, gestos de borrado y herramientas LLM en un campo de texto real.</string>
+    <string name="input_test_hint">Usa esta página para verificar macros, entrada de voz, gestos de borrado y herramientas LLM en un campo de texto real.</string>
     <string name="input_test_editor_hint">Toca aquí y empieza a escribir con TermKey…</string>
     <string name="input_test_refocus">Enfocar Editor</string>
     <string name="input_test_switch_ime">Cambiar Teclado</string>
-    <string name="input_test_cases">Verificaciones sugeridas: persistencia de código/candidatos, deslizar hacia arriba para borrar, vibración al mantener presionado, opciones de pulido, vista previa de voz e inserción de macros.</string>
+    <string name="input_test_cases">Verificaciones sugeridas: deslizar hacia arriba para borrar, vibración al mantener presionado, opciones de pulido, vista previa de voz e inserción de macros.</string>
 
     <!-- Setup screen -->
     <string name="setup_title">Configuración de TermKey</string>
@@ -22,27 +22,28 @@
     <string name="setup_done">¡TermKey está activo! Ya puedes usarlo en cualquier aplicación.</string>
 
     <!-- Settings -->
-    <string name="pref_category_appearance">Apariencia</string>
+    <string name="pref_category_appearance">Apariencia y Temas</string>
     <string name="pref_category_behavior">Comportamiento</string>
     <string name="pref_category_voice">Entrada de Voz</string>
     <string name="pref_category_llm">Herramientas LLM</string>
     <string name="pref_category_macros">Barra de Macros</string>
-    <string name="pref_category_chinese">Entrada en Chino</string>
-    <string name="pref_import_custom_dict">Importar diccionario personalizado</string>
-    <string name="pref_import_custom_dict_summary">Carga un archivo de texto con pares "pinyin palabra" (uno por línea)</string>
-    <string name="pref_custom_dict_count">%d entradas personalizadas</string>
-    <string name="pref_clear_custom_dict">Borrar diccionario personalizado</string>
-    <string name="custom_dict_imported">Se importaron %d entradas.</string>
-    <string name="custom_dict_cleared">Diccionario personalizado borrado.</string>
-    <string name="custom_dict_import_failed">Error al importar. Comprueba el formato del archivo.</string>
+    <string name="pref_category_custom_colors">Paleta de Tema Personalizado</string>
+
+    <string name="pref_keyboard_theme">Tema del teclado</string>
+    <string name="pref_keyboard_font">Fuente / Tipo de letra</string>
+    <string name="pref_key_text_size">Tamaño de texto de teclas</string>
+    <string name="pref_key_height">Altura de teclas</string>
+    <string name="pref_custom_surface_color">Color de fondo del teclado (#RRGGBB)</string>
+    <string name="pref_custom_key_bg_color">Color de fondo de teclas (#RRGGBB)</string>
+    <string name="pref_custom_text_color">Color del texto de teclas (#RRGGBB)</string>
+    <string name="pref_custom_accent_color">Color de acento / resalte (#RRGGBB)</string>
+
     <string name="pref_show_fn_row">Mostrar fila F1–F12</string>
     <string name="pref_show_fn_row_summary">Muestra la fila de teclas de función en la parte superior del teclado</string>
     <string name="pref_show_macro_bar">Mostrar barra de macros</string>
     <string name="pref_show_macro_bar_summary">Muestra fragmentos de comandos rápidos sobre el teclado</string>
-    <string name="pref_key_height">Altura de tecla</string>
     <string name="pref_vibrate">Vibrar al presionar tecla</string>
     <string name="pref_sound">Sonido al presionar tecla</string>
-    <string name="pref_keyboard_theme">Tema del teclado</string>
     <string name="pref_input_language">Idioma de entrada predeterminado</string>
     <string name="pref_swipe_typing">Escritura por deslizamiento (Swipe)</string>
     <string name="pref_swipe_typing_summary">Desliza el dedo por las teclas para escribir palabras automáticamente</string>
@@ -125,7 +126,6 @@
     <string name="key_shift">⇧</string>
     <string name="key_lang_en">EN</string>
     <string name="key_lang_es">ES</string>
-    <string name="key_lang_zh">中</string>
     <string name="key_mic_idle">MIC</string>
     <string name="key_mic_connecting">…</string>
     <string name="key_mic_recording">GRAB</string>

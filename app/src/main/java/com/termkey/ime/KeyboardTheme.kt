@@ -1,5 +1,7 @@
 package com.termkey.ime
 
+import android.content.SharedPreferences
+
 data class KeyboardColorPalette(
     val surfaceColor: Int,
     val surface2Color: Int,
@@ -13,7 +15,42 @@ data class KeyboardColorPalette(
 )
 
 object KeyboardTheme {
-    fun getPalette(themeKey: String?): KeyboardColorPalette {
+    fun parseHexColor(hexStr: String?, defaultColor: Int): Int {
+        if (hexStr.isNullOrBlank()) return defaultColor
+        return try {
+            val cleanHex = hexStr.trim().removePrefix("#")
+            val fullHex = when (cleanHex.length) {
+                6 -> "FF$cleanHex"
+                8 -> cleanHex
+                3 -> "FF" + cleanHex.map { "$it$it" }.joinToString("")
+                else -> return defaultColor
+            }
+            fullHex.toLong(16).toInt()
+        } catch (_: Exception) {
+            defaultColor
+        }
+    }
+
+    @JvmOverloads
+    fun getPalette(themeKey: String?, prefs: SharedPreferences? = null): KeyboardColorPalette {
+        if (themeKey == "custom" && prefs != null) {
+            val surface = parseHexColor(prefs.getString("custom_surface_color", "#0D1117"), 0xFF0D1117.toInt())
+            val keyBg = parseHexColor(prefs.getString("custom_key_bg_color", "#21262D"), 0xFF21262D.toInt())
+            val text = parseHexColor(prefs.getString("custom_text_color", "#FFFFFF"), 0xFFFFFFFF.toInt())
+            val accent = parseHexColor(prefs.getString("custom_accent_color", "#00FF66"), 0xFF00FF66.toInt())
+            return KeyboardColorPalette(
+                surfaceColor = surface,
+                surface2Color = keyBg,
+                borderColor = keyBg,
+                textColor = text,
+                textDimColor = text,
+                accentColor = accent,
+                keyBgColor = keyBg,
+                keyAltBgColor = keyBg,
+                keyActiveColor = accent,
+            )
+        }
+
         return when (themeKey) {
             "classic_dark" -> KeyboardColorPalette(
                 surfaceColor = 0xFF121212.toInt(),
@@ -25,6 +62,61 @@ object KeyboardTheme {
                 keyBgColor = 0xFF2A2A2A.toInt(),
                 keyAltBgColor = 0xFF333333.toInt(),
                 keyActiveColor = 0xFF33B5E5.toInt()
+            )
+            "oled_black" -> KeyboardColorPalette(
+                surfaceColor = 0xFF000000.toInt(),
+                surface2Color = 0xFF121212.toInt(),
+                borderColor = 0xFF222222.toInt(),
+                textColor = 0xFFFFFFFF.toInt(),
+                textDimColor = 0xFF888888.toInt(),
+                accentColor = 0xFF00E5FF.toInt(),
+                keyBgColor = 0xFF161616.toInt(),
+                keyAltBgColor = 0xFF222222.toInt(),
+                keyActiveColor = 0xFF00E5FF.toInt()
+            )
+            "dracula" -> KeyboardColorPalette(
+                surfaceColor = 0xFF282A36.toInt(),
+                surface2Color = 0xFF343746.toInt(),
+                borderColor = 0xFF44475A.toInt(),
+                textColor = 0xFFF8F8F2.toInt(),
+                textDimColor = 0xFF6272A4.toInt(),
+                accentColor = 0xFFFF79C6.toInt(),
+                keyBgColor = 0xFF44475A.toInt(),
+                keyAltBgColor = 0xFF6272A4.toInt(),
+                keyActiveColor = 0xFFFF79C6.toInt()
+            )
+            "nord" -> KeyboardColorPalette(
+                surfaceColor = 0xFF2E3440.toInt(),
+                surface2Color = 0xFF3B4252.toInt(),
+                borderColor = 0xFF434C5E.toInt(),
+                textColor = 0xFFECEFF4.toInt(),
+                textDimColor = 0xFFD8DEE9.toInt(),
+                accentColor = 0xFF88C0D0.toInt(),
+                keyBgColor = 0xFF3B4252.toInt(),
+                keyAltBgColor = 0xFF434C5E.toInt(),
+                keyActiveColor = 0xFF88C0D0.toInt()
+            )
+            "gruvbox" -> KeyboardColorPalette(
+                surfaceColor = 0xFF282828.toInt(),
+                surface2Color = 0xFF3C3836.toInt(),
+                borderColor = 0xFF504945.toInt(),
+                textColor = 0xFFEBDBB2.toInt(),
+                textDimColor = 0xFFA89984.toInt(),
+                accentColor = 0xFFFABD2F.toInt(),
+                keyBgColor = 0xFF3C3836.toInt(),
+                keyAltBgColor = 0xFF504945.toInt(),
+                keyActiveColor = 0xFFFABD2F.toInt()
+            )
+            "solarized_dark" -> KeyboardColorPalette(
+                surfaceColor = 0xFF002B36.toInt(),
+                surface2Color = 0xFF073642.toInt(),
+                borderColor = 0xFF586E75.toInt(),
+                textColor = 0xFF93A1A1.toInt(),
+                textDimColor = 0xFF657B83.toInt(),
+                accentColor = 0xFF2AA198.toInt(),
+                keyBgColor = 0xFF073642.toInt(),
+                keyAltBgColor = 0xFF586E75.toInt(),
+                keyActiveColor = 0xFF2AA198.toInt()
             )
             "terminal_amber" -> KeyboardColorPalette(
                 surfaceColor = 0xFF120F0A.toInt(),
@@ -49,14 +141,14 @@ object KeyboardTheme {
                 keyActiveColor = 0xFF00F0FF.toInt()
             )
             "light" -> KeyboardColorPalette(
-                surfaceColor = 0xFFF0F0F0.toInt(),
-                surface2Color = 0xFFE0E0E0.toInt(),
-                borderColor = 0xFFCCCCCC.toInt(),
-                textColor = 0xFF222222.toInt(),
-                textDimColor = 0xFF666666.toInt(),
+                surfaceColor = 0xFFF8F9FA.toInt(),
+                surface2Color = 0xFFE9ECEF.toInt(),
+                borderColor = 0xFFDEE2E6.toInt(),
+                textColor = 0xFF212529.toInt(),
+                textDimColor = 0xFF6C757D.toInt(),
                 accentColor = 0xFF007AFF.toInt(),
                 keyBgColor = 0xFFFFFFFF.toInt(),
-                keyAltBgColor = 0xFFEAEAEA.toInt(),
+                keyAltBgColor = 0xFFE9ECEF.toInt(),
                 keyActiveColor = 0xFF007AFF.toInt()
             )
             "crimson" -> KeyboardColorPalette(

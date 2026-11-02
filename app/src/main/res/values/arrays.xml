@@ -3,33 +3,77 @@
     <string-array name="key_height_entries">
         <item>Small (36dp)</item>
         <item>Normal (42dp)</item>
-        <item>Large (50dp)</item>
-        <item>Extra Large (58dp)</item>
+        <item>Comfortable (48dp)</item>
+        <item>Tall (54dp)</item>
+        <item>Extra Tall (60dp)</item>
     </string-array>
     <string-array name="key_height_values">
         <item>36</item>
         <item>42</item>
-        <item>50</item>
-        <item>58</item>
+        <item>48</item>
+        <item>54</item>
+        <item>60</item>
     </string-array>
+
+    <string-array name="key_text_size_entries">
+        <item>Compact (Small)</item>
+        <item>Normal (Default)</item>
+        <item>Large (Readable)</item>
+        <item>Extra Large</item>
+    </string-array>
+    <string-array name="key_text_size_values">
+        <item>small</item>
+        <item>normal</item>
+        <item>large</item>
+        <item>xlarge</item>
+    </string-array>
+
+    <string-array name="keyboard_font_entries">
+        <item>Monospace (Terminal)</item>
+        <item>Sans-Serif (Clean Modern)</item>
+        <item>Serif (Classic)</item>
+        <item>Sans-Serif Medium (Bold Clean)</item>
+        <item>System Default</item>
+    </string-array>
+    <string-array name="keyboard_font_values">
+        <item>monospace</item>
+        <item>sans-serif</item>
+        <item>serif</item>
+        <item>sans-serif-medium</item>
+        <item>default</item>
+    </string-array>
+
     <string-array name="keyboard_theme_entries">
         <item>Terminal Green (Default)</item>
         <item>Classic Dark</item>
+        <item>OLED True Black</item>
+        <item>Dracula Night</item>
+        <item>Nord Ice</item>
+        <item>Gruvbox Retro</item>
+        <item>Solarized Teal</item>
         <item>Terminal Amber</item>
-        <item>Cyberpunk Purple</item>
-        <item>Light Theme</item>
+        <item>Cyberpunk Neon</item>
+        <item>Minimal Light</item>
         <item>Crimson Red</item>
-        <item>Dynamic Wallpaper / System Theme</item>
+        <item>Dynamic System Theme</item>
+        <item>Custom Palette</item>
     </string-array>
     <string-array name="keyboard_theme_values">
         <item>terminal_green</item>
         <item>classic_dark</item>
+        <item>oled_black</item>
+        <item>dracula</item>
+        <item>nord</item>
+        <item>gruvbox</item>
+        <item>solarized_dark</item>
         <item>terminal_amber</item>
         <item>cyberpunk</item>
         <item>light</item>
         <item>crimson</item>
         <item>dynamic_system</item>
+        <item>custom</item>
     </string-array>
+
     <string-array name="input_language_entries">
         <item>English (EN)</item>
         <item>Spanish (Español - ES)</item>

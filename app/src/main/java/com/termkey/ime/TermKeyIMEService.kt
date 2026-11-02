@@ -531,8 +531,9 @@ class TermKeyIMEService : InputMethodService() {
 
     private fun applyPreferences() {
         val themeKey = prefs.getString("keyboard_theme", "terminal_green")
-        val palette = KeyboardTheme.getPalette(themeKey)
+        val palette = KeyboardTheme.getPalette(themeKey, prefs)
         applyThemePalette(palette)
+        applyKeyboardFont()
 
         val langPref = prefs.getString("input_language", "en")
         val newLang = when (langPref) {
@@ -549,6 +550,36 @@ class TermKeyIMEService : InputMethodService() {
         updateVoiceKeyUI()
         updateLlmPanelUi()
         scheduleAdaptiveTouchTargetsUpdate()
+    }
+
+    private fun applyKeyboardFont() {
+        val fontPref = prefs.getString("keyboard_font", "monospace")
+        val typeface = when (fontPref) {
+            "sans-serif" -> android.graphics.Typeface.SANS_SERIF
+            "serif" -> android.graphics.Typeface.SERIF
+            "sans-serif-medium" -> android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.BOLD)
+            "default" -> android.graphics.Typeface.DEFAULT
+            else -> android.graphics.Typeface.MONOSPACE
+        }
+
+        val applyTypeface: (View?) -> Unit = { view ->
+            if (view is TextView) {
+                view.typeface = typeface
+            }
+        }
+
+        if (::keyRows.isInitialized) {
+            keyRows.forEach { row ->
+                for (i in 0 until row.childCount) {
+                    applyTypeface(row.getChildAt(i))
+                }
+            }
+        }
+        if (::fnRow.isInitialized) {
+            for (i in 0 until fnRow.childCount) {
+                applyTypeface(fnRow.getChildAt(i))
+            }
+        }
     }
 
     private fun applyThemePalette(palette: KeyboardColorPalette) {
@@ -1836,12 +1867,19 @@ class TermKeyIMEService : InputMethodService() {
 
     private fun applyDynamicKeyTextSizes() {
         val compactMode = layoutMode != KeyboardLayoutMode.FULL
-        val baseSize = if (compactMode) 15f else 13f
-        val wideSize = if (compactMode) 18f else 16f
-        val utilitySize = if (compactMode) 12.5f else 10f
-        val modifierSize = if (compactMode) 13f else 11f
-        val enterSize = if (compactMode) 13.5f else 11f
-        val arrowSize = if (compactMode) 18f else 16f
+        val textSizeMultiplier = when (prefs.getString("key_text_size", "normal")) {
+            "small" -> 0.85f
+            "large" -> 1.15f
+            "xlarge" -> 1.30f
+            else -> 1.0f
+        }
+
+        val baseSize = (if (compactMode) 15f else 13f) * textSizeMultiplier
+        val wideSize = (if (compactMode) 18f else 16f) * textSizeMultiplier
+        val utilitySize = (if (compactMode) 12.5f else 10f) * textSizeMultiplier
+        val modifierSize = (if (compactMode) 13f else 11f) * textSizeMultiplier
+        val enterSize = (if (compactMode) 13.5f else 11f) * textSizeMultiplier
+        val arrowSize = (if (compactMode) 18f else 16f) * textSizeMultiplier
 
         val baseKeys = intArrayOf(
             R.id.key_grave,
@@ -1922,10 +1960,12 @@ class TermKeyIMEService : InputMethodService() {
 
     private fun nextCompactHeightDp(baseHeightDp: Int): Int {
         return when {
+            baseHeightDp < 36 -> 36
             baseHeightDp < 42 -> 42
-            baseHeightDp < 50 -> 50
-            baseHeightDp < 58 -> 58
-            else -> 58
+            baseHeightDp < 48 -> 48
+            baseHeightDp < 54 -> 54
+            baseHeightDp < 60 -> 60
+            else -> baseHeightDp
         }
     }
 
