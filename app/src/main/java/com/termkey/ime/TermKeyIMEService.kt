@@ -1063,6 +1063,16 @@ class TermKeyIMEService : InputMethodService() {
             updateChineseState(chineseEngine.backspace(currentChineseContextBefore()))
             return
         }
+        if (currentInputLang == InputLanguage.ES && currentSpanishPrefix.isNotEmpty()) {
+            currentSpanishPrefix = currentSpanishPrefix.dropLast(1)
+            if (currentSpanishPrefix.isNotEmpty()) {
+                currentInputConnection?.setComposingText(currentSpanishPrefix, 1)
+            } else {
+                currentInputConnection?.finishComposingText()
+            }
+            refreshCandidateArea()
+            return
+        }
         val ic = currentInputConnection ?: return
         val selectedText = ic.getSelectedText(0)
         if (!selectedText.isNullOrEmpty()) {
@@ -1103,6 +1113,15 @@ class TermKeyIMEService : InputMethodService() {
                 clearChineseInput(commitCurrent = false)
                 currentInputConnection?.commitText(" ", 1)
             }
+            return
+        }
+        if (currentInputLang == InputLanguage.ES && currentSpanishPrefix.isNotEmpty()) {
+            feedbackVibrate()
+            feedbackSound()
+            val bestCandidate = spanishLexiconStore.lookupCandidates(currentSpanishPrefix).firstOrNull()?.text ?: currentSpanishPrefix
+            currentInputConnection?.commitText("$bestCandidate ", 1)
+            currentSpanishPrefix = ""
+            refreshCandidateArea()
             return
         }
         feedbackVibrate()
