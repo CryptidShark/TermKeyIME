@@ -1,6 +1,5 @@
 package com.termkey.ime
 
-import android.Manifest
 import android.content.pm.PackageManager
 import android.graphics.Rect
 import android.inputmethodservice.InputMethodService
@@ -18,6 +17,7 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewConfiguration
+import android.view.WindowManager
 import android.view.animation.AlphaAnimation
 import android.view.animation.Animation
 import android.view.animation.LinearInterpolator
@@ -26,6 +26,7 @@ import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -112,13 +113,14 @@ class TermKeyIMEService : InputMethodService() {
             R.id.key_arrow_up,
             R.id.key_shift,
             R.id.key_lang,
+            R.id.key_emoji,
             R.id.key_page_up,
             R.id.key_page_down,
             R.id.key_home,
             R.id.key_end,
             R.id.key_space,
             R.id.key_delete,
-            R.id.key_mic,
+            R.id.key_numbers,
             R.id.key_arrow_left,
             R.id.key_arrow_down,
             R.id.key_arrow_right,
@@ -168,11 +170,12 @@ class TermKeyIMEService : InputMethodService() {
             R.id.key_arrow_up,
             R.id.key_shift,
             R.id.key_lang,
+            R.id.key_emoji,
             R.id.key_home,
             R.id.key_end,
             R.id.key_space,
             R.id.key_delete,
-            R.id.key_mic,
+            R.id.key_numbers,
             R.id.key_arrow_right,
         )
 
@@ -231,9 +234,41 @@ class TermKeyIMEService : InputMethodService() {
             R.id.key_period,
             R.id.key_slash,
             R.id.key_lang,
+            R.id.key_emoji,
             R.id.key_home,
             R.id.key_space,
-            R.id.key_mic,
+            R.id.key_numbers,
+            R.id.key_arrow_right,
+        )
+
+        private val COMPACT_NUMERIC_KEY_IDS = setOf(
+            R.id.key_1,
+            R.id.key_2,
+            R.id.key_3,
+            R.id.key_4,
+            R.id.key_5,
+            R.id.key_6,
+            R.id.key_7,
+            R.id.key_8,
+            R.id.key_9,
+            R.id.key_0,
+            R.id.key_minus,
+            R.id.key_equals,
+            R.id.key_backspace,
+            R.id.key_q,
+            R.id.key_w,
+            R.id.key_e,
+            R.id.key_r,
+            R.id.key_t,
+            R.id.key_y,
+            R.id.key_comma,
+            R.id.key_period,
+            R.id.key_slash,
+            R.id.key_space,
+            R.id.key_enter,
+            R.id.key_numbers,
+            R.id.key_emoji,
+            R.id.key_lang,
             R.id.key_arrow_right,
         )
 
@@ -286,6 +321,30 @@ class TermKeyIMEService : InputMethodService() {
             R.id.key_period to ">",
             R.id.key_slash to "/",
         )
+
+        private val NUMERIC_KEY_LABELS = mapOf(
+            R.id.key_1 to "1",
+            R.id.key_2 to "2",
+            R.id.key_3 to "3",
+            R.id.key_4 to "4",
+            R.id.key_5 to "5",
+            R.id.key_6 to "6",
+            R.id.key_7 to "7",
+            R.id.key_8 to "8",
+            R.id.key_9 to "9",
+            R.id.key_0 to "0",
+            R.id.key_minus to "-",
+            R.id.key_equals to "+",
+            R.id.key_q to "+",
+            R.id.key_w to "-",
+            R.id.key_e to "*",
+            R.id.key_r to "/",
+            R.id.key_t to ".",
+            R.id.key_y to ",",
+            R.id.key_comma to ",",
+            R.id.key_period to ".",
+            R.id.key_slash to "/",
+        )
     }
 
     private enum class InputLanguage {
@@ -297,6 +356,7 @@ class TermKeyIMEService : InputMethodService() {
         COMPACT_EN,
         COMPACT_ES,
         COMPACT_SYMBOL,
+        COMPACT_NUMERIC,
     }
 
     // ── Modifier state ───────────────────────────────────────────────────────
@@ -363,7 +423,7 @@ class TermKeyIMEService : InputMethodService() {
     private lateinit var fnRow: LinearLayout
     private lateinit var keyRows: List<LinearLayout>
     private lateinit var languageKey: TextView
-    private lateinit var voiceKey: TextView
+    private lateinit var numbersKey: TextView
     private lateinit var llmPanel: View
     private lateinit var llmPanelTitle: TextView
     private lateinit var llmPanelStatus: TextView
@@ -381,13 +441,6 @@ class TermKeyIMEService : InputMethodService() {
     private val prefs by lazy { PreferenceManager.getDefaultSharedPreferences(this) }
     private var layoutMode = KeyboardLayoutMode.COMPACT_EN
     private var previousCompactLayoutMode = KeyboardLayoutMode.COMPACT_EN
-    private var voiceClient: VolcengineVoiceInputClient? = null
-    private var voiceListening = false
-    private var voiceStarting = false
-    private var voiceStopping = false
-    private var voicePreviewText = ""
-    private var voicePreviewUsesComposing = false
-    private var voiceBlinkAnimation: AlphaAnimation? = null
     private var llmClient: OpenAiCompatLlmClient? = null
     private var llmPreviewState: LlmPreviewState? = null
     private val repeatHandler = Handler(Looper.getMainLooper())
@@ -439,7 +492,7 @@ class TermKeyIMEService : InputMethodService() {
             rootView.findViewById(R.id.key_row_5),
         )
         languageKey = rootView.findViewById(R.id.key_lang)
-        voiceKey = rootView.findViewById(R.id.key_mic)
+        numbersKey = rootView.findViewById(R.id.key_numbers)
         llmPanel = rootView.findViewById(R.id.llm_panel)
         llmPanelTitle = rootView.findViewById(R.id.llm_panel_title)
         llmPanelStatus = rootView.findViewById(R.id.llm_panel_status)
@@ -492,13 +545,11 @@ class TermKeyIMEService : InputMethodService() {
     override fun onFinishInputView(finishingInput: Boolean) {
         super.onFinishInputView(finishingInput)
         stopDeleteRepeats()
-        cancelVoiceInput()
         dismissLlmPanel(cancelRequest = true)
     }
 
     override fun onDestroy() {
         stopDeleteRepeats()
-        cancelVoiceInput()
         dismissLlmPanel(cancelRequest = true)
         super.onDestroy()
     }
@@ -547,7 +598,6 @@ class TermKeyIMEService : InputMethodService() {
 
         refreshCandidateArea()
         updateKeyboardLayoutUi()
-        updateVoiceKeyUI()
         updateLlmPanelUi()
         scheduleAdaptiveTouchTargetsUpdate()
     }
@@ -706,7 +756,8 @@ class TermKeyIMEService : InputMethodService() {
             R.id.key_f11 to "F11",
             R.id.key_f12 to "F12",
             R.id.key_lang to getString(R.string.key_lang_en),
-            R.id.key_mic to getString(R.string.key_mic_idle),
+            R.id.key_emoji to "😊",
+            R.id.key_numbers to "123",
         )
 
         labels.forEach { (viewId, label) ->
@@ -767,11 +818,8 @@ class TermKeyIMEService : InputMethodService() {
         wireDeleteKey(R.id.key_backspace, ::performBackspace, ::clearAllBeforeCursor)
         wireKey(R.id.key_space)     { sendSpace() }
         wireDeleteKey(R.id.key_delete, ::performForwardDelete, ::clearAllAfterCursor)
-        rootView.findViewById<View>(R.id.key_mic)?.setOnClickListener {
-            feedbackVibrate(24)
-            feedbackSound()
-            toggleVoiceInput()
-        }
+        wireKey(R.id.key_emoji)     { showEmojiPickerDialog() }
+        wireKey(R.id.key_numbers)   { toggleNumericMode() }
 
         wireCompactBackspaceSwapKey(R.id.key_arrow_up)
         wireKey(R.id.key_arrow_down)  { sendKeyCode(KeyEvent.KEYCODE_DPAD_DOWN) }
@@ -1181,7 +1229,6 @@ class TermKeyIMEService : InputMethodService() {
         val shiftView = rootView.findViewById<TextView>(R.id.key_shift)
         shiftView?.alpha = if (shiftActive) 1.0f else 0.7f
         updateKeyboardLayoutUi()
-        updateVoiceKeyUI()
     }
 
     private fun resetModifiers() {
@@ -1640,7 +1687,6 @@ class TermKeyIMEService : InputMethodService() {
 
     private fun updateKeyboardLayoutUi() {
         if (!::languageKey.isInitialized || !::candidateScrollView.isInitialized) return
-        val showVoice = prefs.getBoolean("show_voice_key", true)
         val showMacro = prefs.getBoolean("show_macro_bar", true)
         val showFn = prefs.getBoolean("show_fn_row", true)
         val compactInvisibleKeys = if (currentInputLang == InputLanguage.ES) {
@@ -1655,6 +1701,7 @@ class TermKeyIMEService : InputMethodService() {
             KeyboardLayoutMode.COMPACT_EN -> COMPACT_EN_KEY_IDS
             KeyboardLayoutMode.COMPACT_ES -> COMPACT_ES_KEY_IDS
             KeyboardLayoutMode.COMPACT_SYMBOL -> COMPACT_SYMBOL_KEY_IDS
+            KeyboardLayoutMode.COMPACT_NUMERIC -> COMPACT_NUMERIC_KEY_IDS
             KeyboardLayoutMode.FULL -> emptySet()
         }
 
@@ -1682,7 +1729,8 @@ class TermKeyIMEService : InputMethodService() {
 
             KeyboardLayoutMode.COMPACT_EN,
             KeyboardLayoutMode.COMPACT_ES,
-            KeyboardLayoutMode.COMPACT_SYMBOL -> {
+            KeyboardLayoutMode.COMPACT_SYMBOL,
+            KeyboardLayoutMode.COMPACT_NUMERIC -> {
                 ALL_KEY_IDS.forEach { keyId ->
                     rootView.findViewById<View>(keyId)?.visibility =
                         when {
@@ -1699,14 +1747,11 @@ class TermKeyIMEService : InputMethodService() {
 
         rootView.findViewById<View>(R.id.key_row_1)?.visibility = View.VISIBLE
 
-        voiceKey.visibility = if (showVoice && (layoutMode == KeyboardLayoutMode.FULL || visibleCompactKeys.contains(R.id.key_mic))) {
-            View.VISIBLE
-        } else {
-            View.GONE
+        if (::numbersKey.isInitialized) {
+            numbersKey.text = if (layoutMode == KeyboardLayoutMode.COMPACT_NUMERIC) "ABC" else "123"
         }
 
         refreshCandidateArea()
-        updateVoiceKeyUI()
         updateLlmPanelUi()
         scheduleAdaptiveTouchTargetsUpdate()
     }
@@ -1818,6 +1863,11 @@ class TermKeyIMEService : InputMethodService() {
         } else if (layoutMode == KeyboardLayoutMode.COMPACT_SYMBOL) {
             SYMBOL_KEY_LABELS + mapOf(
                 R.id.key_home to "ABC",
+                R.id.key_arrow_right to "↩",
+            )
+        } else if (layoutMode == KeyboardLayoutMode.COMPACT_NUMERIC) {
+            NUMERIC_KEY_LABELS + mapOf(
+                R.id.key_numbers to "ABC",
                 R.id.key_arrow_right to "↩",
             )
         } else if (currentInputLang == InputLanguage.ES) {
@@ -1951,7 +2001,7 @@ class TermKeyIMEService : InputMethodService() {
         baseKeys.forEach { setKeyTextSize(it, baseSize) }
 
         intArrayOf(R.id.key_backspace).forEach { setKeyTextSize(it, wideSize) }
-        intArrayOf(R.id.key_tab, R.id.key_space, R.id.key_page_up, R.id.key_page_down, R.id.key_home, R.id.key_end, R.id.key_delete, R.id.key_mic, R.id.key_shift, R.id.key_lang).forEach {
+        intArrayOf(R.id.key_tab, R.id.key_space, R.id.key_page_up, R.id.key_page_down, R.id.key_home, R.id.key_end, R.id.key_delete, R.id.key_emoji, R.id.key_numbers, R.id.key_shift, R.id.key_lang).forEach {
             setKeyTextSize(it, utilitySize)
         }
         intArrayOf(R.id.key_ctrl, R.id.key_alt, R.id.key_esc).forEach { setKeyTextSize(it, modifierSize) }
@@ -1968,7 +2018,8 @@ class TermKeyIMEService : InputMethodService() {
             KeyboardLayoutMode.FULL -> baseHeightDp
             KeyboardLayoutMode.COMPACT_EN,
             KeyboardLayoutMode.COMPACT_ES,
-            KeyboardLayoutMode.COMPACT_SYMBOL -> nextCompactHeightDp(baseHeightDp)
+            KeyboardLayoutMode.COMPACT_SYMBOL,
+            KeyboardLayoutMode.COMPACT_NUMERIC -> nextCompactHeightDp(baseHeightDp)
         }
         val rowHeightPx = (effectiveHeightDp * resources.displayMetrics.density).toInt()
         keyRows.forEach { row ->
@@ -2248,210 +2299,85 @@ class TermKeyIMEService : InputMethodService() {
         )
     }
 
-    private fun toggleVoiceInput() {
-        if (voiceStarting || voiceListening || voiceStopping) {
-            showToast(R.string.voice_stopping)
-            requestVoiceStop()
-            return
-        }
-
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-            showToast(R.string.voice_missing_permission)
-            return
-        }
-
-        val config = buildVoiceConfig()
-        if (config == null) {
-            showToast(R.string.voice_missing_config)
-            return
-        }
-
-        voiceClient = VolcengineVoiceInputClient(
-            config = config,
-            listener = object : VolcengineVoiceInputClient.Listener {
-                override fun onListeningChanged(isListening: Boolean) {
-                    voiceStarting = false
-                    voiceListening = isListening
-                    if (!isListening) {
-                        voiceStopping = false
-                        voiceClient = null
-                    }
-                    feedbackVibrate(if (isListening) 30 else 18)
-                    updateVoiceKeyUI()
-                    if (isListening) {
-                        showToast(R.string.voice_listening)
-                    }
-                }
-
-                override fun onPartialResult(text: String) {
-                    renderVoicePreview(text)
-                }
-
-                override fun onFinalResult(text: String) {
-                    voiceStarting = false
-                    voiceStopping = false
-                    voiceListening = false
-                    voiceClient = null
-                    commitVoicePreview(text)
-                    updateVoiceKeyUI()
-                }
-
-                override fun onError(message: String) {
-                    voiceStarting = false
-                    voiceStopping = false
-                    voiceListening = false
-                    voiceClient = null
-                    finishVoicePreview()
-                    updateVoiceKeyUI()
-                    showToast("${getString(R.string.voice_error_prefix)} $message", Toast.LENGTH_LONG)
-                }
-            },
+    private fun showEmojiPickerDialog() {
+        feedbackVibrate(18)
+        feedbackSound()
+        val emojis = listOf(
+            "😀", "😃", "😄", "😁", "😆", "😅", "🤣", "😂", "🙂", "🙃", "😉", "😊", "😇",
+            "🥰", "😍", "🤩", "😘", "😗", "😚", "😙", "😋", "😛", "😜", "🤪", "😝", "🤑",
+            "🤗", "🤭", "🤫", "🤔", "🤐", "🤨", "😐", "😑", "😶", "😏", "😒", "🙄", "😬",
+            "😌", "😔", "😪", "🤤", "😴", "😷", "🤒", "🤕", "🤢", "🤮", "🤧", "🥵", "🥶",
+            "🥳", "😎", "🤓", "🧐", "😕", "😟", "🙁", "😮", "😯", "😲", "😳", "🥺", "😦",
+            "❤️", "🧡", "💛", "💚", "💙", "💜", "🖤", "🤍", "🤎", "💔", "💕", "💞", "💓",
+            "👍", "👎", "👏", "🙌", "👐", "🤲", "🤝", "🙏", "💪", "👊", "✊", "🤛", "🤜",
+            "🔥", "✨", "⭐", "🌟", "💫", "💥", "💯", "💢", "💬", "💭", "💤", "🚀", "💡",
+            "🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼", "🐨", "🐯", "🦁", "🐮", "🐷",
+            "🍎", "🍏", "🍐", "🍊", "🍋", "🍌", "🍉", "🍇", "🍓", "🍒", "🍑", "🍍", "🥥",
+            "⚽", "🏀", "🏈", "⚾", "🎾", "🏐", "🏉", "🥏", "🎱", "🏓", "🏸", "☕", "🍺"
         )
-        voiceStarting = true
-        voiceStopping = false
-        updateVoiceKeyUI()
-        voiceClient?.start()
-    }
 
-    private fun requestVoiceStop() {
-        voiceStarting = false
-        voiceStopping = true
-        updateVoiceKeyUI()
-        voiceClient?.stop()
-    }
-
-    private fun cancelVoiceInput() {
-        voiceClient?.cancel()
-        voiceClient = null
-        voiceStarting = false
-        voiceStopping = false
-        voiceListening = false
-        finishVoicePreview()
-        updateVoiceKeyUI()
-    }
-
-    private fun buildVoiceConfig(): VolcengineVoiceInputClient.Config? {
-        val appKey = prefs.getString("voice_volc_app_key", null)?.trim().orEmpty()
-        val accessToken = prefs.getString("voice_volc_access_key", null)?.trim().orEmpty()
-        val resourceId = prefs.getString("voice_volc_resource_id", null)?.trim().orEmpty()
-        val language = prefs.getString("voice_language", "es-ES")?.trim().orEmpty().ifBlank { "es-ES" }
-
-        if (appKey.isBlank() || accessToken.isBlank() || resourceId.isBlank()) {
-            return null
+        val gridLayout = android.widget.GridLayout(this).apply {
+            columnCount = 7
+            setPadding(16, 16, 16, 16)
         }
 
-        return VolcengineVoiceInputClient.Config(
-            appKey = appKey,
-            accessToken = accessToken,
-            resourceId = resourceId,
-            language = language,
-        )
-    }
-
-    private fun updateVoiceKeyUI() {
-        if (!::voiceKey.isInitialized) return
-        val active = voiceStarting || voiceListening || voiceStopping
-        voiceKey.isActivated = active
-        voiceKey.alpha = if (active) 1.0f else 0.9f
-        voiceKey.translationZ = if (voiceListening) 6f else 0f
-        voiceKey.text = getString(
-            when {
-                voiceStopping -> R.string.key_mic_connecting
-                voiceListening -> R.string.key_mic_recording
-                voiceStarting -> R.string.key_mic_connecting
-                else -> R.string.key_mic_idle
-            },
-        )
-        syncVoiceBlinking()
-    }
-
-    private fun syncVoiceBlinking() {
-        if (!::voiceKey.isInitialized) return
-        if (voiceListening && !voiceStopping) {
-            if (voiceBlinkAnimation == null) {
-                voiceBlinkAnimation = AlphaAnimation(1.0f, 0.12f).apply {
-                    duration = 420
-                    repeatMode = Animation.REVERSE
-                    repeatCount = Animation.INFINITE
-                    interpolator = LinearInterpolator()
-                }
-            }
-            if (voiceKey.animation == null) {
-                voiceKey.startAnimation(voiceBlinkAnimation)
-            }
-        } else {
-            voiceKey.clearAnimation()
+        val scrollView = android.widget.ScrollView(this).apply {
+            addView(gridLayout)
         }
-    }
 
-    private fun renderVoicePreview(text: String) {
-        val preview = text.trim()
-        if (preview.isEmpty() || preview == voicePreviewText) return
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(getString(R.string.emoji_dialog_title))
+            .setView(scrollView)
+            .setNegativeButton(android.R.string.cancel, null)
+            .create()
 
-        val ic = currentInputConnection ?: return
-        ic.beginBatchEdit()
         try {
-            if (!voicePreviewUsesComposing && voicePreviewText.isNotEmpty()) {
-                ic.deleteSurroundingText(voicePreviewText.length, 0)
+            dialog.window?.let { window ->
+                window.setType(WindowManager.LayoutParams.TYPE_APPLICATION_ATTACHED_DIALOG)
+                window.attributes = window.attributes.also {
+                    it.token = rootView.windowToken
+                }
             }
+        } catch (_: Exception) {}
 
-            val composingApplied = runCatching { ic.setComposingText(preview, 1) }.getOrDefault(false)
-            if (composingApplied) {
-                voicePreviewUsesComposing = true
-                voicePreviewText = preview
-            } else {
-                ic.commitText(preview, 1)
-                voicePreviewUsesComposing = false
-                voicePreviewText = preview
+        emojis.forEach { emoji ->
+            val btn = TextView(this).apply {
+                text = emoji
+                textSize = 24f
+                gravity = android.view.Gravity.CENTER
+                setPadding(12, 12, 12, 12)
+                setOnClickListener {
+                    feedbackVibrate(12)
+                    feedbackSound()
+                    currentInputConnection?.commitText(emoji, 1)
+                    dialog.dismiss()
+                }
             }
-        } finally {
-            ic.endBatchEdit()
+            gridLayout.addView(btn)
         }
+
+        dialog.show()
     }
 
-    private fun commitVoicePreview(finalText: String) {
-        val resolvedText = finalText.trim()
-        val ic = currentInputConnection
-        if (ic == null) {
-            resetVoicePreviewState()
+    private fun handleNumericModeCharacterKey(viewId: Int): Boolean {
+        if (layoutMode != KeyboardLayoutMode.COMPACT_NUMERIC) return false
+        val output = NUMERIC_KEY_LABELS[viewId] ?: return false
+        currentInputConnection?.commitText(output, 1)
+        return true
+    }
+
+    private fun toggleNumericMode() {
+        if (layoutMode == KeyboardLayoutMode.COMPACT_NUMERIC) {
+            layoutMode = previousCompactLayoutMode.takeIf {
+                it == KeyboardLayoutMode.COMPACT_EN || it == KeyboardLayoutMode.COMPACT_ES
+            } ?: defaultLayoutModeForLanguage()
+            updateKeyboardLayoutUi()
             return
         }
 
-        ic.beginBatchEdit()
-        try {
-            when {
-                voicePreviewUsesComposing && resolvedText.isNotEmpty() -> ic.commitText(resolvedText, 1)
-                voicePreviewUsesComposing && voicePreviewText.isNotEmpty() -> ic.finishComposingText()
-                !voicePreviewUsesComposing && voicePreviewText.isNotEmpty() -> {
-                    if (resolvedText.isNotEmpty() && resolvedText != voicePreviewText) {
-                        ic.deleteSurroundingText(voicePreviewText.length, 0)
-                        ic.commitText(resolvedText, 1)
-                    }
-                }
-                resolvedText.isNotEmpty() -> ic.commitText(resolvedText, 1)
-            }
-        } finally {
-            ic.endBatchEdit()
-            resetVoicePreviewState()
-        }
-    }
-
-    private fun finishVoicePreview() {
-        val ic = currentInputConnection
-        if (ic != null && voicePreviewUsesComposing && voicePreviewText.isNotEmpty()) {
-            ic.beginBatchEdit()
-            try {
-                ic.finishComposingText()
-            } finally {
-                ic.endBatchEdit()
-            }
-        }
-        resetVoicePreviewState()
-    }
-
-    private fun resetVoicePreviewState() {
-        voicePreviewText = ""
-        voicePreviewUsesComposing = false
+        previousCompactLayoutMode = defaultLayoutModeForLanguage()
+        layoutMode = KeyboardLayoutMode.COMPACT_NUMERIC
+        updateKeyboardLayoutUi()
     }
 
     // ── Haptic / Audio feedback ────────────────────────────────────────────────

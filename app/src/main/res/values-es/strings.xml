@@ -126,7 +126,5 @@
     <string name="key_shift">⇧</string>
     <string name="key_lang_en">EN</string>
     <string name="key_lang_es">ES</string>
-    <string name="key_mic_idle">MIC</string>
-    <string name="key_mic_connecting">…</string>
-    <string name="key_mic_recording">GRAB</string>
+    <string name="emoji_dialog_title">Emojis</string>
 </resources>
