@@ -1229,13 +1229,13 @@ class TermKeyIMEService : InputMethodService() {
     private fun sendEnter() {
         feedbackVibrate()
         feedbackSound()
-        commitWordUsageAndReset()
         val ic = currentInputConnection ?: return
         if (ctrlActive) {
             ic.commitText("\r", 1)
             ctrlActive = false
             updateModifierUI()
         } else {
+            commitWordUsageAndReset()
             ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER))
             ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER))
         }
@@ -1271,13 +1271,13 @@ class TermKeyIMEService : InputMethodService() {
     private fun sendSpace() {
         feedbackVibrate()
         feedbackSound()
-        commitWordUsageAndReset()
         val ic = currentInputConnection ?: return
         if (ctrlActive) {
             ic.commitText("\u0000", 1)
             ctrlActive = false
             updateModifierUI()
         } else {
+            commitWordUsageAndReset()
             ic.commitText(" ", 1)
         }
     }
@@ -2431,29 +2431,21 @@ class TermKeyIMEService : InputMethodService() {
     private fun showLanguagePickerDialog() {
         val languages = arrayOf("English (US)", "Español (ES)")
         val current = if (currentInputLang == InputLanguage.EN) 0 else 1
-        androidx.appcompat.app.AlertDialog.Builder(android.view.ContextThemeWrapper(this, android.R.style.Theme_DeviceDefault_Dialog))
+        val dialog = androidx.appcompat.app.AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
             .setTitle("Seleccionar idioma")
-            .setSingleChoiceItems(languages, current) { dialog, which ->
+            .setSingleChoiceItems(languages, current) { d, which ->
                 currentInputLang = if (which == 0) InputLanguage.EN else InputLanguage.ES
                 layoutMode = defaultLayoutModeForLanguage()
                 currentSpanishWord = ""
                 currentEnglishWord = ""
                 updateKeyboardLayoutUi()
-                dialog.dismiss()
+                d.dismiss()
             }
             .setNegativeButton("Cancelar", null)
             .create()
-            .apply {
-                try {
-                    window?.let { win ->
-                        win.setType(WindowManager.LayoutParams.TYPE_INPUT_METHOD)
-                        win.attributes = win.attributes.also {
-                            it.token = rootView.windowToken
-                        }
-                    }
-                } catch (_: Exception) {}
-                show()
-            }
+        dialog.window?.setType(WindowManager.LayoutParams.TYPE_APPLICATION_ATTACHED_DIALOG)
+        dialog.window?.attributes?.token = rootView.windowToken
+        dialog.show()
     }
 
     @Suppress("SetTextI18n")
