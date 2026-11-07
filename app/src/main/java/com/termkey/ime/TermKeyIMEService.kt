@@ -2444,8 +2444,16 @@ class TermKeyIMEService : InputMethodService() {
             .setNegativeButton("Cancelar", null)
             .create()
         dialog.window?.setType(WindowManager.LayoutParams.TYPE_APPLICATION_ATTACHED_DIALOG)
-        dialog.window?.attributes?.token = rootView.windowToken
-        dialog.show()
+        val token = rootView.windowToken
+        if (token != null) {
+            dialog.window?.attributes?.token = token
+        }
+        try {
+            dialog.show()
+        } catch (e: WindowManager.BadTokenException) {
+            Log.e(TAG, "No se pudo mostrar el diálogo de idioma", e)
+            dialog.dismiss()
+        }
     }
 
     @Suppress("SetTextI18n")
