@@ -479,6 +479,10 @@ class TermKeyIMEService : InputMethodService() {
 
     // ── IME lifecycle ────────────────────────────────────────────────────────
 
+    override fun onCreate() {
+        super.onCreate()
+    }
+
     override fun onEvaluateFullscreenMode(): Boolean {
         return false
     }
@@ -893,7 +897,7 @@ class TermKeyIMEService : InputMethodService() {
             true
         }
         wireDeleteKey(R.id.key_delete, ::performForwardDelete, ::clearAllAfterCursor)
-        wireKey(R.id.key_emoji)     { showEmojiBarInCandidateArea() }
+        wireKey(R.id.key_emoji)     { showEmojiPicker() }
         wireKey(R.id.key_numbers)   { toggleNumericMode() }
         wireKey(R.id.key_one_hand)  {
             feedbackVibrate(15)
@@ -2571,24 +2575,100 @@ class TermKeyIMEService : InputMethodService() {
         )
     }
 
-    private fun showEmojiBarInCandidateArea() {
+    private fun showEmojiPicker() {
         feedbackVibrate(14)
         feedbackSound()
-        if (!::candidateContainer.isInitialized) return
-        candidateContainer.removeAllViews()
-        val emojis = listOf("😀", "😃", "😄", "😁", "😆", "😅", "🤣", "😂", "😊", "😇", "🥰", "😍", "🤩", "😘", "❤️", "👍", "🔥", "✨", "🚀")
-        emojis.forEach { emoji ->
-            val btn = layoutInflater.inflate(R.layout.macro_button, candidateContainer, false) as TextView
-            btn.text = emoji
-            btn.textSize = 18f
-            btn.setOnClickListener {
-                feedbackVibrate(12)
-                feedbackSound()
-                currentInputConnection?.commitText(emoji, 1)
-            }
-            candidateContainer.addView(btn)
+        val categories = mapOf(
+            "😀 Caritas" to listOf("😀", "😃", "😄", "😁", "😆", "😅", "🤣", "😂", "🙂", "🙃", "😉", "😊", "😇", "🥰", "😍", "🤩", "😘", "😗", "😚", "😙", "😋", "😛", "😜", "🤪", "😝", "🤑", "🤗", "🤭", "🤫", "🤔", "🤐", "🤨", "😐", "😑", "😶", "😏", "😒", "🙄", "😬", "😌", "😔", "😪", "🤤", "😴", "😷", "🤒", "🤕", "🤢", "🤮", "🤧", "🥵", "🥶", "🥳", "😎", "🤓", "🧐", "😕", "😟", "🙁", "😮", "😯", "😲", "😳", "🥺", "😦"),
+            "❤️ Gestos" to listOf("👍", "👎", "👏", "🙌", "👐", "🤲", "🤝", "🙏", "💪", "👊", "✊", "🤛", "🤜", "🤞", "✌️", "🤟", "🤘", "👌", "🤌", "🤏", "👈", "👉", "👆", "👇", "☝️", "✋", "🤚", "🖐️", "🖖", "👋", "🤙", "✍️", "💅", "👄", "👅", "👂", "👃", "👣", "👁️", "👀", "🧠", "🦴", "👤", "👥", "🫂", "❤️", "🧡", "💛", "💚", "💙", "💜", "🖤", "🤍", "🤎", "💔", "❤️‍🔥", "💖", "💗", "💘", "💕", "💞", "💓", "❣️"),
+            "🐶 Animales" to listOf("🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼", "🐨", "🐯", "🦁", "🐮", "🐷", "🐸", "🐵", "🐔", "🐧", "🐦", "🐤", "🐣", "🐥", "🦆", "🦅", "🦉", "🦇", "🐺", "🐗", "🐴", "🦄", "🐝", "🐛", "🦋", "🐌", "🐞", "🐜", "🐢", "🐍", "🦎", "🐙", "🦑", "🦀", "🦞", "🦐", "🐠", "🐟", "🐬", "🐳", "🐋", "🦈", "🐊", "🐅", "🐆", "🦓", "🦍", "🦧", "🐘", "🦛", "🦏", "🐪", "🐫", "🦒", "🦘", "🐃", "🐂", "🐄", "🐎", "🐖", "🐏", "🐑", "🦙", "🐐", "🦌", "🐕", "🐩", "🐈"),
+            "🍎 Comida" to listOf("🍏", "🍎", "🍐", "🍊", "🍋", "🍌", "🍉", "🍇", "🍓", "🍈", "🍒", "🍑", "🍍", "🥥", "🥝", "🍅", "🍆", "🥑", "🥦", "🥬", "🥒", "🌶️", "🫑", "🌽", "🥕", "🫒", "🧄", "🧅", "🥔", "🍠", "🥐", "🥯", "🍞", "🥖", "🥨", "🧀", "🥚", "🍳", "🧈", "🥞", "🧇", "🥓", "🥩", "🍗", "🍖", "🌭", "🍔", "🍟", "🍕", "🥪", "🌮", "🌯", "🥗", "🥘", "🍝", "🍜", "🍲", "🍛", "🍣", "🍱", "🥟", "🍧", "🍨", "🍦", "🍩", "🍪", "☕", "🍵", "🍺", "🍻", "🥂", "🍷", "🍸", "🍹", "🍾"),
+            "🚗 Viajes" to listOf("🚗", "🚕", "🚙", "🚌", "🚎", "🏎️", "🚓", "🚑", "🚒", "🚐", "🚚", "🚛", "🚜", "🏍️", "🛵", "🚲", "🛴", "🛹", "🛼", "⛽", "🚨", "🚥", "🚦", "🛑", "🚧", "⚓", "⛵", "🚤", "🚢", "✈️", "🛩️", "🚁", "🛰️", "🚀", "🛸", "⏰", "⏱️", "🧭", "⚽", "🏀", "🏈", "⚾", "🎾", "🏐", "🏉", "🎱", "🏓", "🏸", "🥅", "⛳", "🏆", "🥇", "🥈", "🥉", "🏅", "🎨", "🎤", "🎧", "🎼", "🎹", "🥁", "🎷", "🎺", "🎸", "🎻", "🎲", "🎯", "🎳", "🎮"),
+            "💡 Objetos" to listOf("⌚", "📱", "💻", "⌨️", "🖥️", "🖨️", "🖱️", "💽", "💾", "💿", "📀", "📷", "📸", "📹", "🎥", "📺", "📻", "🎙️", "🔋", "🔌", "💡", "🔦", "🕯️", "🧯", "💸", "💵", "💴", "💶", "💷", "🪙", "💰", "💳", "💎", "⚖️", "🧰", "🔧", "🔨", "⚒️", "🛠️", "⛏️", "⚙️", "🧱", "🛡️", "🔑", "🗝️", "🔒", "🔓", "🔔", "🔕", "📢", "📣", "💬", "💭", "💤", "🚀", "💡", "📌", "📍", "📎", "📏", "📐", "✂️", "🖊️", "🖋️", "✒️", "✏️", "📝", "📁", "📂", "🗂️", "📅", "📆", "📇", "📈", "📉", "📊", "📋")
+        )
+
+        val mainLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(12, 12, 12, 12)
         }
-        candidateScrollView.visibility = View.VISIBLE
+
+        val tabScroll = HorizontalScrollView(this).apply {
+            isHorizontalFadingEdgeEnabled = false
+            isHorizontalScrollBarEnabled = false
+        }
+        val tabContainer = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = android.view.Gravity.CENTER_VERTICAL
+        }
+        tabScroll.addView(tabContainer)
+        mainLayout.addView(tabScroll)
+
+        val gridLayout = android.widget.GridLayout(this).apply {
+            columnCount = 7
+            setPadding(8, 8, 8, 8)
+        }
+        val emojiScroll = android.widget.ScrollView(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                (resources.displayMetrics.density * 260).toInt()
+            )
+            addView(gridLayout)
+        }
+        mainLayout.addView(emojiScroll)
+
+        fun populateEmojis(categoryName: String) {
+            gridLayout.removeAllViews()
+            val list = categories[categoryName] ?: emptyList()
+            list.forEach { emoji ->
+                val btn = TextView(this).apply {
+                    text = emoji
+                    textSize = 26f
+                    gravity = android.view.Gravity.CENTER
+                    setPadding(10, 10, 10, 10)
+                    setOnClickListener {
+                        feedbackVibrate(12)
+                        feedbackSound()
+                        currentInputConnection?.commitText(emoji, 1)
+                    }
+                }
+                gridLayout.addView(btn)
+            }
+        }
+
+        categories.keys.forEachIndexed { index, catName ->
+            val tabBtn = TextView(this).apply {
+                text = catName
+                textSize = 13f
+                setPadding(14, 10, 14, 10)
+                setTextColor(ContextCompat.getColor(context, R.color.terminal_cyan))
+                setOnClickListener {
+                    feedbackVibrate(10)
+                    populateEmojis(catName)
+                }
+            }
+            tabContainer.addView(tabBtn)
+            if (index == 0) {
+                populateEmojis(catName)
+            }
+        }
+
+        val dialog = androidx.appcompat.app.AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+            .setTitle("Emojis")
+            .setView(mainLayout)
+            .setNegativeButton("Cerrar", null)
+            .create()
+
+        dialog.window?.setType(WindowManager.LayoutParams.TYPE_APPLICATION_ATTACHED_DIALOG)
+        val token = rootView.windowToken
+        if (token != null) {
+            dialog.window?.attributes?.token = token
+        }
+        try {
+            dialog.show()
+        } catch (e: WindowManager.BadTokenException) {
+            Log.e(TAG, "No se pudo mostrar el selector de emojis", e)
+            dialog.dismiss()
+        }
     }
 
     private fun wireNumericPad() {
@@ -2606,6 +2686,10 @@ class TermKeyIMEService : InputMethodService() {
             R.id.num_0 to "0",
             R.id.num_dot to ".",
             R.id.num_comma to ",",
+            R.id.num_div to "/",
+            R.id.num_mul to "*",
+            R.id.num_min to "-",
+            R.id.num_plus to "+",
         )
         numMap.forEach { (viewId, charStr) ->
             rootView.findViewById<View>(viewId)?.setOnClickListener {
@@ -2629,19 +2713,12 @@ class TermKeyIMEService : InputMethodService() {
         }
     }
 
-
-
     private fun toggleNumericMode() {
-        if (layoutMode == KeyboardLayoutMode.COMPACT_NUMERIC) {
-            layoutMode = previousCompactLayoutMode.takeIf {
-                it == KeyboardLayoutMode.COMPACT_EN || it == KeyboardLayoutMode.COMPACT_ES
-            } ?: defaultLayoutModeForLanguage()
-            updateKeyboardLayoutUi()
-            return
+        layoutMode = if (layoutMode == KeyboardLayoutMode.COMPACT_NUMERIC) {
+            defaultLayoutModeForLanguage()
+        } else {
+            KeyboardLayoutMode.COMPACT_NUMERIC
         }
-
-        previousCompactLayoutMode = defaultLayoutModeForLanguage()
-        layoutMode = KeyboardLayoutMode.COMPACT_NUMERIC
         updateKeyboardLayoutUi()
     }
 

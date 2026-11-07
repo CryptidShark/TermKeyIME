@@ -231,33 +231,7 @@
             android:paddingTop="2dp"
             android:paddingBottom="2dp">
 
-            <!-- Num Row 1: 1, 2, 3, Backspace -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="46dp"
-                android:orientation="horizontal"
-                android:paddingTop="2dp"
-                android:paddingBottom="2dp">
-                <TextView android:id="@+id/num_1" style="@style/Key" android:text="1" android:textSize="22sp" android:layout_weight="1" />
-                <TextView android:id="@+id/num_2" style="@style/Key" android:text="2" android:textSize="22sp" android:layout_weight="1" />
-                <TextView android:id="@+id/num_3" style="@style/Key" android:text="3" android:textSize="22sp" android:layout_weight="1" />
-                <TextView android:id="@+id/num_backspace" style="@style/Key.Wide" android:text="⌫" android:textSize="18sp" android:layout_weight="1.5" />
-            </LinearLayout>
-
-            <!-- Num Row 2: 4, 5, 6, Done/Enter -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="46dp"
-                android:orientation="horizontal"
-                android:paddingTop="2dp"
-                android:paddingBottom="2dp">
-                <TextView android:id="@+id/num_4" style="@style/Key" android:text="4" android:textSize="22sp" android:layout_weight="1" />
-                <TextView android:id="@+id/num_5" style="@style/Key" android:text="5" android:textSize="22sp" android:layout_weight="1" />
-                <TextView android:id="@+id/num_6" style="@style/Key" android:text="6" android:textSize="22sp" android:layout_weight="1" />
-                <TextView android:id="@+id/num_enter" style="@style/Key.Enter" android:text="Done" android:textSize="16sp" android:layout_weight="1.5" />
-            </LinearLayout>
-
-            <!-- Num Row 3: 7, 8, 9, . -->
+            <!-- Num Row 1: 7, 8, 9, / -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="46dp"
@@ -267,10 +241,49 @@
                 <TextView android:id="@+id/num_7" style="@style/Key" android:text="7" android:textSize="22sp" android:layout_weight="1" />
                 <TextView android:id="@+id/num_8" style="@style/Key" android:text="8" android:textSize="22sp" android:layout_weight="1" />
                 <TextView android:id="@+id/num_9" style="@style/Key" android:text="9" android:textSize="22sp" android:layout_weight="1" />
-                <TextView android:id="@+id/num_dot" style="@style/Key" android:text="." android:textSize="24sp" android:layout_weight="1.5" />
+                <TextView android:id="@+id/num_div" style="@style/Key" android:text="/" android:textSize="22sp" android:layout_weight="1" />
             </LinearLayout>
 
-            <!-- Num Row 4: ABC, 0, Space, , -->
+            <!-- Num Row 2: 4, 5, 6, * -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="46dp"
+                android:orientation="horizontal"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp">
+                <TextView android:id="@+id/num_4" style="@style/Key" android:text="4" android:textSize="22sp" android:layout_weight="1" />
+                <TextView android:id="@+id/num_5" style="@style/Key" android:text="5" android:textSize="22sp" android:layout_weight="1" />
+                <TextView android:id="@+id/num_6" style="@style/Key" android:text="6" android:textSize="22sp" android:layout_weight="1" />
+                <TextView android:id="@+id/num_mul" style="@style/Key" android:text="*" android:textSize="22sp" android:layout_weight="1" />
+            </LinearLayout>
+
+            <!-- Num Row 3: 1, 2, 3, - -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="46dp"
+                android:orientation="horizontal"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp">
+                <TextView android:id="@+id/num_1" style="@style/Key" android:text="1" android:textSize="22sp" android:layout_weight="1" />
+                <TextView android:id="@+id/num_2" style="@style/Key" android:text="2" android:textSize="22sp" android:layout_weight="1" />
+                <TextView android:id="@+id/num_3" style="@style/Key" android:text="3" android:textSize="22sp" android:layout_weight="1" />
+                <TextView android:id="@+id/num_min" style="@style/Key" android:text="-" android:textSize="22sp" android:layout_weight="1" />
+            </LinearLayout>
+
+            <!-- Num Row 4: ., 0, ,, + -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="46dp"
+                android:orientation="horizontal"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp">
+                <TextView android:id="@+id/num_dot" style="@style/Key" android:text="." android:textSize="24sp" android:layout_weight="1" />
+                <TextView android:id="@+id/num_0" style="@style/Key" android:text="0" android:textSize="22sp" android:layout_weight="1" />
+                <TextView android:id="@+id/num_comma" style="@style/Key" android:text="," android:textSize="22sp" android:layout_weight="1" />
+                <TextView android:id="@+id/num_plus" style="@style/Key" android:text="+" android:textSize="22sp" android:layout_weight="1" />
+            </LinearLayout>
+
+            <!-- Num Row 5: ABC, Space, Backspace, Done -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="46dp"
@@ -278,9 +291,9 @@
                 android:paddingTop="2dp"
                 android:paddingBottom="2dp">
                 <TextView android:id="@+id/num_abc" style="@style/Key.Mode" android:text="ABC" android:textSize="16sp" android:layout_weight="1" />
-                <TextView android:id="@+id/num_0" style="@style/Key" android:text="0" android:textSize="22sp" android:layout_weight="1" />
-                <TextView android:id="@+id/num_space" style="@style/Key.Space" android:text="SPACE" android:textSize="12sp" android:layout_weight="2" />
-                <TextView android:id="@+id/num_comma" style="@style/Key" android:text="," android:textSize="22sp" android:layout_weight="1" />
+                <TextView android:id="@+id/num_space" style="@style/Key.Space" android:text="SPACE" android:textSize="12sp" android:layout_weight="2.5" />
+                <TextView android:id="@+id/num_backspace" style="@style/Key.Wide" android:text="⌫" android:textSize="18sp" android:layout_weight="1" />
+                <TextView android:id="@+id/num_enter" style="@style/Key.Enter" android:text="Done" android:textSize="16sp" android:layout_weight="1" />
             </LinearLayout>
         </LinearLayout>
 
