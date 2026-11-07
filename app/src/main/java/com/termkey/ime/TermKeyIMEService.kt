@@ -108,6 +108,7 @@ class TermKeyIMEService : InputMethodService() {
             R.id.key_shift,
             R.id.key_lang,
             R.id.key_emoji,
+            R.id.key_one_hand,
             R.id.key_page_up,
             R.id.key_page_down,
             R.id.key_home,
@@ -165,6 +166,7 @@ class TermKeyIMEService : InputMethodService() {
             R.id.key_shift,
             R.id.key_lang,
             R.id.key_emoji,
+            R.id.key_one_hand,
             R.id.key_home,
             R.id.key_end,
             R.id.key_space,
@@ -229,6 +231,7 @@ class TermKeyIMEService : InputMethodService() {
             R.id.key_slash,
             R.id.key_lang,
             R.id.key_emoji,
+            R.id.key_one_hand,
             R.id.key_home,
             R.id.key_space,
             R.id.key_numbers,
@@ -262,6 +265,7 @@ class TermKeyIMEService : InputMethodService() {
             R.id.key_enter,
             R.id.key_numbers,
             R.id.key_emoji,
+            R.id.key_one_hand,
             R.id.key_lang,
             R.id.key_arrow_right,
         )
@@ -351,6 +355,8 @@ class TermKeyIMEService : InputMethodService() {
         COMPACT_ES,
         COMPACT_SYMBOL,
         COMPACT_NUMERIC,
+        ONE_HANDED_LEFT,
+        ONE_HANDED_RIGHT,
     }
 
     // ── Modifier state ───────────────────────────────────────────────────────
@@ -362,7 +368,10 @@ class TermKeyIMEService : InputMethodService() {
     private var isPasswordField = false
     private var currentInputLang = InputLanguage.EN
     private val spanishLexiconStore by lazy { SpanishLexiconStore() }
+    private val englishLexiconStore by lazy { EnglishLexiconStore() }
+    private val userDictionaryStore by lazy { UserDictionaryStore(this) }
     private var currentSpanishWord = ""
+    private var currentEnglishWord = ""
     private var isSwipeTypingActive = false
     private val swipeTraceChars = StringBuilder()
 
@@ -531,35 +540,49 @@ class TermKeyIMEService : InputMethodService() {
         return rootView
     }
 
+    override fun onStartInput(info: EditorInfo?, restarting: Boolean) {
+        super.onStartInput(info, restarting)
+        handleInputStart(info)
+    }
+
     override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {
         try {
             super.onStartInputView(info, restarting)
             applyPreferences()
             resetModifiers()
             dismissLlmPanel(cancelRequest = true)
-
-            val inputType = info?.inputType ?: 0
-            val variation = inputType and EditorInfo.TYPE_MASK_VARIATION
-            val classType = inputType and EditorInfo.TYPE_MASK_CLASS
-
-            isPasswordField = variation == EditorInfo.TYPE_TEXT_VARIATION_PASSWORD ||
-                    variation == EditorInfo.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD ||
-                    variation == EditorInfo.TYPE_TEXT_VARIATION_WEB_PASSWORD ||
-                    (inputType and EditorInfo.TYPE_TEXT_FLAG_NO_SUGGESTIONS) != 0
-
-            val isNumericField = classType == EditorInfo.TYPE_CLASS_NUMBER ||
-                    classType == EditorInfo.TYPE_CLASS_PHONE
-
-            if (isPasswordField) {
-                if (::candidateScrollView.isInitialized) {
-                    candidateScrollView.visibility = View.GONE
-                }
-            } else if (isNumericField) {
-                layoutMode = KeyboardLayoutMode.COMPACT_NUMERIC
-                updateKeyboardLayoutUi()
-            }
+            handleInputStart(info)
         } catch (e: Exception) {
             Log.e(TAG, "Error in onStartInputView", e)
+        }
+    }
+
+    private fun handleInputStart(info: EditorInfo?) {
+        val incognitoPref = prefs.getBoolean("incognito_mode", false)
+        val inputType = info?.inputType ?: 0
+        val variation = inputType and EditorInfo.TYPE_MASK_VARIATION
+        val classType = inputType and EditorInfo.TYPE_MASK_CLASS
+
+        val isPassVar = variation == EditorInfo.TYPE_TEXT_VARIATION_PASSWORD ||
+                variation == EditorInfo.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD ||
+                variation == EditorInfo.TYPE_TEXT_VARIATION_WEB_PASSWORD ||
+                (inputType and EditorInfo.TYPE_TEXT_FLAG_NO_SUGGESTIONS) != 0
+
+        isPasswordField = incognitoPref || isPassVar
+
+        val isNumericField = classType == EditorInfo.TYPE_CLASS_NUMBER ||
+                classType == EditorInfo.TYPE_CLASS_PHONE
+
+        if (isPasswordField) {
+            currentSpanishWord = ""
+            currentEnglishWord = ""
+            swipeTraceChars.setLength(0)
+            if (::candidateScrollView.isInitialized) {
+                candidateScrollView.visibility = View.GONE
+            }
+        } else if (isNumericField) {
+            layoutMode = KeyboardLayoutMode.COMPACT_NUMERIC
+            updateKeyboardLayoutUi()
         }
     }
 
@@ -586,9 +609,12 @@ class TermKeyIMEService : InputMethodService() {
         super.onUpdateSelection(oldSelStart, oldSelEnd, newSelStart, newSelEnd, candidatesStart, candidatesEnd)
         if (newSelStart != newSelEnd) {
             currentSpanishWord = ""
+            currentEnglishWord = ""
         }
         refreshLlmPreviewValidity()
-        refreshCandidateArea()
+        if (!isPasswordField) {
+            refreshCandidateArea()
+        }
     }
 
     private fun isViewInitialized(): Boolean {
@@ -615,6 +641,10 @@ class TermKeyIMEService : InputMethodService() {
         if (newLang != currentInputLang) {
             currentInputLang = newLang
             layoutMode = defaultLayoutModeForLanguage()
+        }
+
+        if (prefs.getBoolean("incognito_mode", false)) {
+            isPasswordField = true
         }
 
         refreshCandidateArea()
@@ -1685,12 +1715,28 @@ class TermKeyIMEService : InputMethodService() {
 
     private fun refreshCandidateArea() {
         if (!::candidateScrollView.isInitialized) return
+        if (isPasswordField) {
+            candidateScrollView.visibility = View.GONE
+            return
+        }
         candidateScrollView.visibility = View.VISIBLE
         when {
             currentInputLang == InputLanguage.ES && currentSpanishWord.isNotEmpty() && layoutMode != KeyboardLayoutMode.COMPACT_SYMBOL -> {
-                val candidates = spanishLexiconStore.lookupCandidates(currentSpanishWord)
-                if (candidates.isNotEmpty()) {
-                    rebuildSpanishCandidateBar(candidates)
+                val userWords = userDictionaryStore.lookupCandidates(currentSpanishWord)
+                val lexiconWords = spanishLexiconStore.lookupCandidates(currentSpanishWord).map { it.text }
+                val combined = (userWords + lexiconWords).distinct().take(10)
+                if (combined.isNotEmpty()) {
+                    rebuildSpanishCandidateBar(combined.map { SpanishCandidate(it) })
+                } else {
+                    rebuildEmptyCandidateBar()
+                }
+            }
+            currentInputLang == InputLanguage.EN && currentEnglishWord.isNotEmpty() && layoutMode != KeyboardLayoutMode.COMPACT_SYMBOL -> {
+                val userWords = userDictionaryStore.lookupCandidates(currentEnglishWord)
+                val lexiconWords = englishLexiconStore.lookupCandidates(currentEnglishWord).map { it.text }
+                val combined = (userWords + lexiconWords).distinct().take(10)
+                if (combined.isNotEmpty()) {
+                    rebuildEnglishCandidateBar(combined)
                 } else {
                     rebuildEmptyCandidateBar()
                 }
@@ -1746,6 +1792,48 @@ class TermKeyIMEService : InputMethodService() {
         }
     }
 
+    @Suppress("SetTextI18n")
+    private fun rebuildEnglishCandidateBar(candidates: List<String>) {
+        if (!isViewInitialized()) return
+        try {
+            candidateContainer.removeAllViews()
+            candidates.forEachIndexed { index, candidate ->
+                val itemView = layoutInflater.inflate(R.layout.candidate_item, candidateContainer, false)
+                val indexView = itemView.findViewById<TextView>(R.id.candidate_index)
+                val textView = itemView.findViewById<TextView>(R.id.candidate_text)
+                val pinyinView = itemView.findViewById<TextView>(R.id.candidate_pinyin)
+
+                indexView.text = "${index + 1}."
+                textView.text = candidate
+                pinyinView.visibility = View.GONE
+
+                if (index == 0) {
+                    textView.setTextColor(ContextCompat.getColor(this, R.color.terminal_green))
+                } else {
+                    textView.setTextColor(ContextCompat.getColor(this, R.color.terminal_text))
+                }
+
+                itemView.setOnClickListener {
+                    feedbackVibrate(14)
+                    feedbackSound()
+                    val ic = currentInputConnection
+                    if (ic != null && currentEnglishWord.isNotEmpty()) {
+                        ic.deleteSurroundingText(currentEnglishWord.length, 0)
+                        ic.commitText("$candidate ", 1)
+                    } else {
+                        ic?.commitText("$candidate ", 1)
+                    }
+                    currentEnglishWord = ""
+                    refreshCandidateArea()
+                }
+                candidateContainer.addView(itemView)
+            }
+            candidateScrollView.visibility = if (candidates.isNotEmpty()) View.VISIBLE else View.GONE
+        } catch (e: Exception) {
+            Log.e(TAG, "Error rebuilding English candidate bar", e)
+        }
+    }
+
     private fun shouldShowLlmToolBar(): Boolean {
         if (!prefs.getBoolean("llm_enabled", false)) return false
         if (buildLlmConfig() == null) return false
@@ -1766,7 +1854,9 @@ class TermKeyIMEService : InputMethodService() {
             )
         }
         val visibleCompactKeys = when (layoutMode) {
-            KeyboardLayoutMode.COMPACT_EN -> COMPACT_EN_KEY_IDS
+            KeyboardLayoutMode.COMPACT_EN,
+            KeyboardLayoutMode.ONE_HANDED_LEFT,
+            KeyboardLayoutMode.ONE_HANDED_RIGHT -> COMPACT_EN_KEY_IDS
             KeyboardLayoutMode.COMPACT_ES -> COMPACT_ES_KEY_IDS
             KeyboardLayoutMode.COMPACT_SYMBOL -> COMPACT_SYMBOL_KEY_IDS
             KeyboardLayoutMode.COMPACT_NUMERIC -> COMPACT_NUMERIC_KEY_IDS
@@ -1798,7 +1888,9 @@ class TermKeyIMEService : InputMethodService() {
             KeyboardLayoutMode.COMPACT_EN,
             KeyboardLayoutMode.COMPACT_ES,
             KeyboardLayoutMode.COMPACT_SYMBOL,
-            KeyboardLayoutMode.COMPACT_NUMERIC -> {
+            KeyboardLayoutMode.COMPACT_NUMERIC,
+            KeyboardLayoutMode.ONE_HANDED_LEFT,
+            KeyboardLayoutMode.ONE_HANDED_RIGHT -> {
                 ALL_KEY_IDS.forEach { keyId ->
                     rootView.findViewById<View>(keyId)?.visibility =
                         when {
@@ -1830,6 +1922,29 @@ class TermKeyIMEService : InputMethodService() {
 
         if (::numbersKey.isInitialized) {
             numbersKey.text = if (layoutMode == KeyboardLayoutMode.COMPACT_NUMERIC) "ABC" else "123"
+        }
+
+        val spaceKey = rootView.findViewById<TextView>(R.id.key_space)
+        spaceKey?.text = when (currentInputLang) {
+            InputLanguage.EN -> "EN"
+            InputLanguage.ES -> "ES"
+        }
+
+        when (layoutMode) {
+            KeyboardLayoutMode.ONE_HANDED_LEFT -> {
+                rootView.pivotX = 0f
+                rootView.scaleX = 0.82f
+                rootView.translationX = 0f
+            }
+            KeyboardLayoutMode.ONE_HANDED_RIGHT -> {
+                rootView.pivotX = rootView.width.toFloat()
+                rootView.scaleX = 0.82f
+                rootView.translationX = (rootView.width * 0.18f)
+            }
+            else -> {
+                rootView.scaleX = 1.0f
+                rootView.translationX = 0f
+            }
         }
 
         refreshCandidateArea()
@@ -2100,7 +2215,9 @@ class TermKeyIMEService : InputMethodService() {
             KeyboardLayoutMode.COMPACT_EN,
             KeyboardLayoutMode.COMPACT_ES,
             KeyboardLayoutMode.COMPACT_SYMBOL,
-            KeyboardLayoutMode.COMPACT_NUMERIC -> nextCompactHeightDp(baseHeightDp)
+            KeyboardLayoutMode.COMPACT_NUMERIC,
+            KeyboardLayoutMode.ONE_HANDED_LEFT,
+            KeyboardLayoutMode.ONE_HANDED_RIGHT -> nextCompactHeightDp(baseHeightDp)
         }
         val rowHeightPx = (effectiveHeightDp * resources.displayMetrics.density).toInt()
         keyRows.forEach { row ->

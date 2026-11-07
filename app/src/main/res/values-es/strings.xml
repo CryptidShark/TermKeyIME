@@ -127,4 +127,9 @@
     <string name="key_lang_en">EN</string>
     <string name="key_lang_es">ES</string>
     <string name="emoji_dialog_title">Emojis</string>
+    <string name="pref_incognito_mode">Modo incógnito</string>
+    <string name="pref_incognito_mode_summary">Desactiva el aprendizaje y almacenamiento de historial por privacidad</string>
+    <string name="pref_clear_dictionary">Borrar diccionario de usuario</string>
+    <string name="pref_clear_dictionary_summary">Eliminar todas las palabras personalizadas aprendidas</string>
+    <string name="dictionary_cleared">Diccionario de usuario borrado.</string>
 </resources>

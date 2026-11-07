@@ -52,6 +52,12 @@ class SettingsActivity : AppCompatActivity() {
                     .show()
                 true
             }
+
+            findPreference<Preference>("clear_user_dictionary")?.setOnPreferenceClickListener {
+                UserDictionaryStore(requireContext()).clearDictionary()
+                Toast.makeText(context, R.string.dictionary_cleared, Toast.LENGTH_SHORT).show()
+                true
+            }
         }
 
         private fun configureAppearancePreferences() {
