@@ -18,10 +18,10 @@ class TermKeyIMEServiceTest {
         for (t in types) {
             val info = EditorInfo().apply { inputType = t }
             val variation = info.inputType and EditorInfo.TYPE_MASK_VARIATION
-            val isPass = variation == EditorInfo.TYPE_TEXT_VARIATION_PASSWORD ||
-                    variation == EditorInfo.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD ||
-                    variation == EditorInfo.TYPE_TEXT_VARIATION_WEB_PASSWORD ||
-                    (info.inputType and EditorInfo.TYPE_TEXT_FLAG_NO_SUGGESTIONS) != 0
+            val isPass = (variation == EditorInfo.TYPE_TEXT_VARIATION_PASSWORD) ||
+                    (variation == EditorInfo.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD) ||
+                    (variation == EditorInfo.TYPE_TEXT_VARIATION_WEB_PASSWORD) ||
+                    ((info.inputType and EditorInfo.TYPE_TEXT_FLAG_NO_SUGGESTIONS) != 0)
             assertTrue("Failed for inputType: $t", isPass)
         }
     }
@@ -32,7 +32,7 @@ class TermKeyIMEServiceTest {
         for (t in numTypes) {
             val info = EditorInfo().apply { inputType = t }
             val classType = info.inputType and EditorInfo.TYPE_MASK_CLASS
-            val isNum = classType == EditorInfo.TYPE_CLASS_NUMBER || classType == EditorInfo.TYPE_CLASS_PHONE
+            val isNum = (classType == EditorInfo.TYPE_CLASS_NUMBER) || (classType == EditorInfo.TYPE_CLASS_PHONE)
             assertTrue("Failed for numeric inputType: $t", isNum)
         }
     }
@@ -42,6 +42,6 @@ class TermKeyIMEServiceTest {
         val store = EnglishLexiconStore()
         val candidates = store.lookupCandidates("term")
         assertTrue(candidates.isNotEmpty())
-        assertTrue(candidates.any { it.text == "terminal" })
+        assertTrue(candidates.any { (text) -> text == "terminal" })
     }
 }

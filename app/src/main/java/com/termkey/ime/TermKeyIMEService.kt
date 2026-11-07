@@ -16,6 +16,7 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewConfiguration
+import android.view.WindowManager
 import android.view.inputmethod.EditorInfo
 import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
@@ -580,9 +581,14 @@ class TermKeyIMEService : InputMethodService() {
             if (::candidateScrollView.isInitialized) {
                 candidateScrollView.visibility = View.GONE
             }
-        } else if (isNumericField) {
-            layoutMode = KeyboardLayoutMode.COMPACT_NUMERIC
-            updateKeyboardLayoutUi()
+        } else {
+            if (::candidateScrollView.isInitialized) {
+                candidateScrollView.visibility = View.VISIBLE
+            }
+            if (isNumericField) {
+                layoutMode = KeyboardLayoutMode.COMPACT_NUMERIC
+                updateKeyboardLayoutUi()
+            }
         }
     }
 
@@ -880,9 +886,26 @@ class TermKeyIMEService : InputMethodService() {
         wireKey(R.id.key_enter)     { sendEnter() }
         wireDeleteKey(R.id.key_backspace, ::performBackspace, ::clearAllBeforeCursor)
         wireKey(R.id.key_space)     { sendSpace() }
+        rootView.findViewById<View>(R.id.key_space)?.setOnLongClickListener {
+            feedbackVibrate(20)
+            feedbackSound()
+            showLanguagePickerDialog()
+            true
+        }
         wireDeleteKey(R.id.key_delete, ::performForwardDelete, ::clearAllAfterCursor)
         wireKey(R.id.key_emoji)     { showEmojiBarInCandidateArea() }
         wireKey(R.id.key_numbers)   { toggleNumericMode() }
+        wireKey(R.id.key_one_hand)  {
+            feedbackVibrate(15)
+            feedbackSound()
+            layoutMode = when (layoutMode) {
+                KeyboardLayoutMode.FULL -> KeyboardLayoutMode.ONE_HANDED_LEFT
+                KeyboardLayoutMode.ONE_HANDED_LEFT -> KeyboardLayoutMode.ONE_HANDED_RIGHT
+                KeyboardLayoutMode.ONE_HANDED_RIGHT -> KeyboardLayoutMode.FULL
+                else -> KeyboardLayoutMode.ONE_HANDED_LEFT
+            }
+            updateKeyboardLayoutUi()
+        }
 
         COMPACT_SYMBOL_KEY_IDS.forEach { viewId ->
             rootView.findViewById<View>(viewId)?.setOnClickListener {
@@ -1188,9 +1211,25 @@ class TermKeyIMEService : InputMethodService() {
         }
     }
 
+    private fun commitWordUsageAndReset() {
+        if (isPasswordField) return
+        when (currentInputLang) {
+            InputLanguage.ES -> if (currentSpanishWord.length >= 2) {
+                userDictionaryStore.recordWordUsage(currentSpanishWord)
+            }
+            InputLanguage.EN -> if (currentEnglishWord.length >= 2) {
+                userDictionaryStore.recordWordUsage(currentEnglishWord)
+            }
+        }
+        currentSpanishWord = ""
+        currentEnglishWord = ""
+        refreshCandidateArea()
+    }
+
     private fun sendEnter() {
         feedbackVibrate()
         feedbackSound()
+        commitWordUsageAndReset()
         val ic = currentInputConnection ?: return
         if (ctrlActive) {
             ic.commitText("\r", 1)
@@ -1205,6 +1244,9 @@ class TermKeyIMEService : InputMethodService() {
     private fun performBackspace() {
         if (currentInputLang == InputLanguage.ES && currentSpanishWord.isNotEmpty()) {
             currentSpanishWord = currentSpanishWord.dropLast(1)
+            refreshCandidateArea()
+        } else if (currentInputLang == InputLanguage.EN && currentEnglishWord.isNotEmpty()) {
+            currentEnglishWord = currentEnglishWord.dropLast(1)
             refreshCandidateArea()
         }
         val ic = currentInputConnection ?: return
@@ -1227,16 +1269,9 @@ class TermKeyIMEService : InputMethodService() {
     }
 
     private fun sendSpace() {
-        if (currentInputLang == InputLanguage.ES) {
-            feedbackVibrate()
-            feedbackSound()
-            currentSpanishWord = ""
-            refreshCandidateArea()
-            currentInputConnection?.commitText(" ", 1)
-            return
-        }
         feedbackVibrate()
         feedbackSound()
+        commitWordUsageAndReset()
         val ic = currentInputConnection ?: return
         if (ctrlActive) {
             ic.commitText("\u0000", 1)
@@ -1601,15 +1636,26 @@ class TermKeyIMEService : InputMethodService() {
         val autoCap = shouldAutoCapitalize() && !shiftActive && !capsLockActive
         val effectiveChar = if (useAlternate || autoCap || shiftActive || capsLockActive) effectiveAlternate else effectivePrimary
 
-        if (currentInputLang == InputLanguage.ES && isLetter && !ctrlActive && !altActive && !isPasswordField) {
-            currentSpanishWord += effectiveChar
-            refreshCandidateArea()
-            sendChar(effectiveChar)
-            if (shiftActive && !capsLockActive) {
-                shiftActive = false
-                updateModifierUI()
+        if (!isPasswordField && !ctrlActive && !altActive) {
+            if (currentInputLang == InputLanguage.ES && isLetter) {
+                currentSpanishWord += effectiveChar
+                refreshCandidateArea()
+                sendChar(effectiveChar)
+                if (shiftActive && !capsLockActive) {
+                    shiftActive = false
+                    updateModifierUI()
+                }
+                return
+            } else if (currentInputLang == InputLanguage.EN && isLetter) {
+                currentEnglishWord += effectiveChar
+                refreshCandidateArea()
+                sendChar(effectiveChar)
+                if (shiftActive && !capsLockActive) {
+                    shiftActive = false
+                    updateModifierUI()
+                }
+                return
             }
-            return
         }
 
         sendChar(effectiveChar)
@@ -2380,6 +2426,34 @@ class TermKeyIMEService : InputMethodService() {
         llmPreviewState = null
         updateLlmPanelUi()
         refreshCandidateArea()
+    }
+
+    private fun showLanguagePickerDialog() {
+        val languages = arrayOf("English (US)", "Español (ES)")
+        val current = if (currentInputLang == InputLanguage.EN) 0 else 1
+        androidx.appcompat.app.AlertDialog.Builder(android.view.ContextThemeWrapper(this, android.R.style.Theme_DeviceDefault_Dialog))
+            .setTitle("Seleccionar idioma")
+            .setSingleChoiceItems(languages, current) { dialog, which ->
+                currentInputLang = if (which == 0) InputLanguage.EN else InputLanguage.ES
+                layoutMode = defaultLayoutModeForLanguage()
+                currentSpanishWord = ""
+                currentEnglishWord = ""
+                updateKeyboardLayoutUi()
+                dialog.dismiss()
+            }
+            .setNegativeButton("Cancelar", null)
+            .create()
+            .apply {
+                try {
+                    window?.let { win ->
+                        win.setType(WindowManager.LayoutParams.TYPE_INPUT_METHOD)
+                        win.attributes = win.attributes.also {
+                            it.token = rootView.windowToken
+                        }
+                    }
+                } catch (_: Exception) {}
+                show()
+            }
     }
 
     @Suppress("SetTextI18n")
