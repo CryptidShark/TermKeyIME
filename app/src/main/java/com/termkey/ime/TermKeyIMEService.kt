@@ -357,6 +357,9 @@ class TermKeyIMEService : InputMethodService() {
     private var ctrlActive = false
     private var altActive = false
     private var shiftActive = false
+    private var lastShiftTapTime = 0L
+    private var capsLockActive = false
+    private var isPasswordField = false
     private var currentInputLang = InputLanguage.EN
     private val spanishLexiconStore by lazy { SpanishLexiconStore() }
     private var currentSpanishWord = ""
@@ -534,6 +537,27 @@ class TermKeyIMEService : InputMethodService() {
             applyPreferences()
             resetModifiers()
             dismissLlmPanel(cancelRequest = true)
+
+            val inputType = info?.inputType ?: 0
+            val variation = inputType and EditorInfo.TYPE_MASK_VARIATION
+            val classType = inputType and EditorInfo.TYPE_MASK_CLASS
+
+            isPasswordField = variation == EditorInfo.TYPE_TEXT_VARIATION_PASSWORD ||
+                    variation == EditorInfo.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD ||
+                    variation == EditorInfo.TYPE_TEXT_VARIATION_WEB_PASSWORD ||
+                    (inputType and EditorInfo.TYPE_TEXT_FLAG_NO_SUGGESTIONS) != 0
+
+            val isNumericField = classType == EditorInfo.TYPE_CLASS_NUMBER ||
+                    classType == EditorInfo.TYPE_CLASS_PHONE
+
+            if (isPasswordField) {
+                if (::candidateScrollView.isInitialized) {
+                    candidateScrollView.visibility = View.GONE
+                }
+            } else if (isNumericField) {
+                layoutMode = KeyboardLayoutMode.COMPACT_NUMERIC
+                updateKeyboardLayoutUi()
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Error in onStartInputView", e)
         }
@@ -786,7 +810,19 @@ class TermKeyIMEService : InputMethodService() {
             updateModifierUI()
         }
         wireModifierKey(R.id.key_shift) {
-            shiftActive = !shiftActive
+            val now = System.currentTimeMillis()
+            if (now - lastShiftTapTime < 400) {
+                capsLockActive = !capsLockActive
+                shiftActive = capsLockActive
+            } else {
+                if (capsLockActive) {
+                    capsLockActive = false
+                    shiftActive = false
+                } else {
+                    shiftActive = !shiftActive
+                }
+            }
+            lastShiftTapTime = now
             updateModifierUI()
         }
         rootView.findViewById<View>(R.id.key_lang)?.apply {
@@ -1229,20 +1265,35 @@ class TermKeyIMEService : InputMethodService() {
 
     // ── Modifier UI update ────────────────────────────────────────────────────
 
+    private fun shouldAutoCapitalize(): Boolean {
+        if (isPasswordField) return false
+        if (shiftActive || capsLockActive) return true
+        val ic = currentInputConnection ?: return false
+        val textBefore = ic.getTextBeforeCursor(4, 0)?.toString() ?: return true
+        if (textBefore.isEmpty()) return true
+        val trimmed = textBefore.trimEnd()
+        if (trimmed.isEmpty()) return true
+        val lastChar = trimmed.last()
+        return lastChar == '.' || lastChar == '?' || lastChar == '!' || lastChar == '\n'
+    }
+
     private fun updateModifierUI() {
         rootView.findViewById<View>(R.id.key_ctrl)?.isActivated = ctrlActive
         rootView.findViewById<View>(R.id.key_alt)?.isActivated = altActive
-        rootView.findViewById<View>(R.id.key_shift)?.isActivated = shiftActive
+        rootView.findViewById<View>(R.id.key_shift)?.isActivated = shiftActive || capsLockActive
 
         val shiftView = rootView.findViewById<TextView>(R.id.key_shift)
-        shiftView?.alpha = if (shiftActive) 1.0f else 0.7f
+        shiftView?.alpha = if (shiftActive || capsLockActive) 1.0f else 0.7f
+        shiftView?.text = if (capsLockActive) "⇪" else "⇧"
         updateKeyboardLayoutUi()
     }
 
     private fun resetModifiers() {
         ctrlActive = false
         altActive = false
-        shiftActive = false
+        if (!capsLockActive) {
+            shiftActive = false
+        }
         updateModifierUI()
     }
 
@@ -1516,16 +1567,26 @@ class TermKeyIMEService : InputMethodService() {
             effectiveAlternate = 'Ñ'
         }
         val isLetter = effectivePrimary in 'a'..'z' || effectivePrimary in 'A'..'Z' || effectivePrimary in 'á'..'ú' || effectivePrimary in 'Á'..'Ú' || effectivePrimary == 'ñ' || effectivePrimary == 'Ñ'
-        val effectiveChar = if (useAlternate) effectiveAlternate else effectivePrimary
+        
+        val autoCap = shouldAutoCapitalize() && !shiftActive && !capsLockActive
+        val effectiveChar = if (useAlternate || autoCap || shiftActive || capsLockActive) effectiveAlternate else effectivePrimary
 
-        if (currentInputLang == InputLanguage.ES && isLetter && !ctrlActive && !altActive) {
+        if (currentInputLang == InputLanguage.ES && isLetter && !ctrlActive && !altActive && !isPasswordField) {
             currentSpanishWord += effectiveChar
             refreshCandidateArea()
             sendChar(effectiveChar)
+            if (shiftActive && !capsLockActive) {
+                shiftActive = false
+                updateModifierUI()
+            }
             return
         }
 
         sendChar(effectiveChar)
+        if (shiftActive && !capsLockActive) {
+            shiftActive = false
+            updateModifierUI()
+        }
     }
 
     private fun toggleLanguageMode() {
