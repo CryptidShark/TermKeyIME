@@ -432,6 +432,8 @@ class TermKeyIMEService : InputMethodService() {
     private lateinit var languageKey: TextView
     private lateinit var numbersKey: TextView
     private lateinit var numericPad: View
+    private lateinit var emojiPanel: View
+    private lateinit var emojiGrid: android.widget.GridLayout
     private lateinit var llmPanel: View
     private lateinit var llmPanelTitle: TextView
     private lateinit var llmPanelStatus: TextView
@@ -523,6 +525,8 @@ class TermKeyIMEService : InputMethodService() {
         wireLlmPanel()
         wireNumericPad()
         numericPad = rootView.findViewById(R.id.numeric_pad)
+        emojiPanel = rootView.findViewById(R.id.emoji_panel)
+        emojiGrid = rootView.findViewById(R.id.emoji_grid)
         adaptiveTouchDelegate = AdaptiveTouchDelegateGroup(rootView)
         swipeTrailView = rootView.findViewById(R.id.keyboard_content)
         rootView.touchDelegate = adaptiveTouchDelegate
@@ -882,6 +886,7 @@ class TermKeyIMEService : InputMethodService() {
                 true
             }
         }
+        wireKey(R.id.key_quote) { sendChar('ñ') }
 
         wireKey(R.id.key_esc)       {
             if (!handleCompactPunctuationKey(R.id.key_esc)) {
@@ -905,6 +910,8 @@ class TermKeyIMEService : InputMethodService() {
         wireDeleteKey(R.id.key_delete, ::performForwardDelete, ::clearAllAfterCursor)
         wireKey(R.id.key_emoji)     { showEmojiPicker() }
         wireKey(R.id.key_numbers)   { toggleNumericMode() }
+        rootView.findViewById<View>(R.id.key_emoji)?.isClickable = true
+        rootView.findViewById<View>(R.id.key_numbers)?.isClickable = true
         wireKey(R.id.key_one_hand)  {
             feedbackVibrate(15)
             feedbackSound()
@@ -2030,13 +2037,14 @@ class TermKeyIMEService : InputMethodService() {
                 }
             }
         }
-        if (visibleRows.isEmpty()) {
+        val touchRows = if (::emojiPanel.isInitialized && emojiPanel.isVisible) emptyList() else visibleRows
+        if (touchRows.isEmpty()) {
             adaptiveTouchDelegate.updateTargets(emptyList())
             host.touchDelegate = adaptiveTouchDelegate
             return
         }
 
-        val rowStates = visibleRows.mapNotNull { row ->
+        val rowStates = touchRows.mapNotNull { row ->
             val keyBounds = buildList {
                 for (index in 0 until row.childCount) {
                     val child = row.getChildAt(index)
@@ -2599,39 +2607,11 @@ class TermKeyIMEService : InputMethodService() {
             "💡 Objetos" to listOf("⌚", "📱", "💻", "⌨️", "🖥️", "🖨️", "🖱️", "💽", "💾", "💿", "📀", "📷", "📸", "📹", "🎥", "📺", "📻", "🎙️", "🔋", "🔌", "💡", "🔦", "🕯️", "🧯", "💸", "💵", "💴", "💶", "💷", "🪙", "💰", "💳", "💎", "⚖️", "🧰", "🔧", "🔨", "⚒️", "🛠️", "⛏️", "⚙️", "🧱", "🛡️", "🔑", "🗝️", "🔒", "🔓", "🔔", "🔕", "📢", "📣", "💬", "💭", "💤", "🚀", "💡", "📌", "📍", "📎", "📏", "📐", "✂️", "🖊️", "🖋️", "✒️", "✏️", "📝", "📁", "📂", "🗂️", "📅", "📆", "📇", "📈", "📉", "📊", "📋")
         )
 
-        val mainLayout = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(12, 12, 12, 12)
-        }
-
-        val tabScroll = HorizontalScrollView(this).apply {
-            isHorizontalFadingEdgeEnabled = false
-            isHorizontalScrollBarEnabled = false
-        }
-        val tabContainer = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = android.view.Gravity.CENTER_VERTICAL
-        }
-        tabScroll.addView(tabContainer)
-        mainLayout.addView(tabScroll)
-
-        val gridLayout = android.widget.GridLayout(this).apply {
-            columnCount = 7
-            setPadding(8, 8, 8, 8)
-        }
-        val emojiScroll = android.widget.ScrollView(this).apply {
-            layoutParams = LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                (resources.displayMetrics.heightPixels * 0.45f).toInt().coerceAtLeast(
-                    (resources.displayMetrics.density * 260).toInt(),
-                ),
-            )
-            addView(gridLayout)
-        }
-        mainLayout.addView(emojiScroll)
+        val categoryContainer = rootView.findViewById<LinearLayout>(R.id.emoji_categories)
+        categoryContainer.removeAllViews()
 
         fun populateEmojis(categoryName: String) {
-            gridLayout.removeAllViews()
+            emojiGrid.removeAllViews()
             val list = categories[categoryName] ?: emptyList()
             list.forEach { emoji ->
                 val btn = TextView(this).apply {
@@ -2645,7 +2625,7 @@ class TermKeyIMEService : InputMethodService() {
                         currentInputConnection?.commitText(emoji, 1)
                     }
                 }
-                gridLayout.addView(btn)
+                emojiGrid.addView(btn)
             }
         }
 
@@ -2660,29 +2640,14 @@ class TermKeyIMEService : InputMethodService() {
                     populateEmojis(catName)
                 }
             }
-            tabContainer.addView(tabBtn)
+            categoryContainer.addView(tabBtn)
             if (index == 0) {
                 populateEmojis(catName)
             }
         }
 
-        val dialog = androidx.appcompat.app.AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
-            .setTitle("Emojis")
-            .setView(mainLayout)
-            .setNegativeButton("Cerrar", null)
-            .create()
-
-        dialog.window?.setType(WindowManager.LayoutParams.TYPE_APPLICATION_ATTACHED_DIALOG)
-        val token = rootView.windowToken
-        if (token != null) {
-            dialog.window?.attributes?.token = token
-        }
-        try {
-            dialog.show()
-        } catch (e: WindowManager.BadTokenException) {
-            Log.e(TAG, "No se pudo mostrar el selector de emojis", e)
-            dialog.dismiss()
-        }
+        emojiPanel.visibility = if (emojiPanel.isVisible) View.GONE else View.VISIBLE
+        scheduleAdaptiveTouchTargetsUpdate()
     }
 
     private fun wireNumericPad() {
@@ -2731,6 +2696,7 @@ class TermKeyIMEService : InputMethodService() {
     }
 
     private fun toggleNumericMode() {
+        emojiPanel.visibility = View.GONE
         layoutMode = if (layoutMode == KeyboardLayoutMode.COMPACT_NUMERIC) {
             defaultLayoutModeForLanguage()
         } else {
