@@ -568,10 +568,12 @@ class TermKeyIMEService : InputMethodService() {
         val variation = inputType and EditorInfo.TYPE_MASK_VARIATION
         val classType = inputType and EditorInfo.TYPE_MASK_CLASS
 
-        val isPassVar = variation == EditorInfo.TYPE_TEXT_VARIATION_PASSWORD ||
+        val isPassVar = classType == EditorInfo.TYPE_CLASS_TEXT && (
+                variation == EditorInfo.TYPE_TEXT_VARIATION_PASSWORD ||
                 variation == EditorInfo.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD ||
                 variation == EditorInfo.TYPE_TEXT_VARIATION_WEB_PASSWORD ||
                 (inputType and EditorInfo.TYPE_TEXT_FLAG_NO_SUGGESTIONS) != 0
+                )
 
         isPasswordField = incognitoPref || isPassVar
 
@@ -582,17 +584,21 @@ class TermKeyIMEService : InputMethodService() {
             currentSpanishWord = ""
             currentEnglishWord = ""
             swipeTraceChars.setLength(0)
+            layoutMode = defaultLayoutModeForLanguage()
             if (::candidateScrollView.isInitialized) {
                 candidateScrollView.visibility = View.GONE
             }
+            if (::rootView.isInitialized) updateKeyboardLayoutUi()
         } else {
             if (::candidateScrollView.isInitialized) {
                 candidateScrollView.visibility = View.VISIBLE
             }
             if (isNumericField) {
                 layoutMode = KeyboardLayoutMode.COMPACT_NUMERIC
-                updateKeyboardLayoutUi()
+            } else {
+                layoutMode = defaultLayoutModeForLanguage()
             }
+            if (::rootView.isInitialized) updateKeyboardLayoutUi()
         }
     }
 
@@ -2017,6 +2023,12 @@ class TermKeyIMEService : InputMethodService() {
             if (::keyRows.isInitialized) {
                 keyRows.filterTo(this) { it.isVisible }
             }
+            if (::numericPad.isInitialized && numericPad.isVisible) {
+                for (index in 0 until (numericPad as ViewGroup).childCount) {
+                    val row = (numericPad as ViewGroup).getChildAt(index)
+                    if (row is ViewGroup && row.isVisible) add(row)
+                }
+            }
         }
         if (visibleRows.isEmpty()) {
             adaptiveTouchDelegate.updateTargets(emptyList())
@@ -2610,7 +2622,9 @@ class TermKeyIMEService : InputMethodService() {
         val emojiScroll = android.widget.ScrollView(this).apply {
             layoutParams = LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                (resources.displayMetrics.density * 260).toInt()
+                (resources.displayMetrics.heightPixels * 0.45f).toInt().coerceAtLeast(
+                    (resources.displayMetrics.density * 260).toInt(),
+                ),
             )
             addView(gridLayout)
         }
