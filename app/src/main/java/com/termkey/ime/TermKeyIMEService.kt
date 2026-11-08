@@ -1926,11 +1926,19 @@ class TermKeyIMEService : InputMethodService() {
             KeyboardLayoutMode.FULL -> emptySet()
         }
 
-        val compactLatinKeys = visibleCompactKeys + setOf(
-            R.id.key_comma, R.id.key_period, R.id.key_slash, R.id.key_quote,
-            R.id.key_shift, R.id.key_emoji, R.id.key_lang, R.id.key_space,
-            R.id.key_numbers, R.id.key_backspace, R.id.key_enter,
-        )
+        val compactLatinKeys = when (layoutMode) {
+            KeyboardLayoutMode.COMPACT_EN -> COMPACT_EN_KEY_IDS + setOf(
+                R.id.key_comma, R.id.key_period, R.id.key_slash, R.id.key_shift,
+                R.id.key_emoji, R.id.key_lang, R.id.key_quote, R.id.key_enter,
+            )
+            KeyboardLayoutMode.COMPACT_ES -> COMPACT_ES_KEY_IDS + setOf(
+                R.id.key_comma, R.id.key_period, R.id.key_slash, R.id.key_shift,
+                R.id.key_emoji, R.id.key_lang, R.id.key_quote, R.id.key_enter,
+            )
+            KeyboardLayoutMode.ONE_HANDED_LEFT,
+            KeyboardLayoutMode.ONE_HANDED_RIGHT -> visibleCompactKeys
+            else -> visibleCompactKeys
+        }
 
         languageKey.isActivated = (currentInputLang != InputLanguage.EN)
         languageKey.text = when (currentInputLang) {
@@ -1986,6 +1994,18 @@ class TermKeyIMEService : InputMethodService() {
                 macroSeparator.visibility = View.GONE
             } else {
                 keyRows.forEach { it.visibility = View.VISIBLE }
+            }
+        }
+
+        if (::emojiPanel.isInitialized) {
+            val showingEmojis = emojiPanel.isVisible
+            keyRows.forEach { it.visibility = if (showingEmojis) View.GONE else it.visibility }
+            if (showingEmojis) {
+                numericPad.visibility = View.GONE
+                fnRow.visibility = View.GONE
+                macroScrollView.visibility = View.GONE
+                macroSeparator.visibility = View.GONE
+                candidateScrollView.visibility = View.GONE
             }
         }
 
@@ -2604,6 +2624,17 @@ class TermKeyIMEService : InputMethodService() {
     private fun showEmojiPicker() {
         feedbackVibrate(14)
         feedbackSound()
+        emojiPanel.visibility = if (emojiPanel.isVisible) View.GONE else View.VISIBLE
+        if (emojiPanel.isVisible) {
+            keyRows.forEach { it.visibility = View.GONE }
+            numericPad.visibility = View.GONE
+            fnRow.visibility = View.GONE
+            macroScrollView.visibility = View.GONE
+            macroSeparator.visibility = View.GONE
+            candidateScrollView.visibility = View.GONE
+        } else {
+            updateKeyboardLayoutUi()
+        }
         val categories = mapOf(
             "😀 Caritas" to listOf("😀", "😃", "😄", "😁", "😆", "😅", "🤣", "😂", "🙂", "🙃", "😉", "😊", "😇", "🥰", "😍", "🤩", "😘", "😗", "😚", "😙", "😋", "😛", "😜", "🤪", "😝", "🤑", "🤗", "🤭", "🤫", "🤔", "🤐", "🤨", "😐", "😑", "😶", "😏", "😒", "🙄", "😬", "😌", "😔", "😪", "🤤", "😴", "😷", "🤒", "🤕", "🤢", "🤮", "🤧", "🥵", "🥶", "🥳", "😎", "🤓", "🧐", "😕", "😟", "🙁", "😮", "😯", "😲", "😳", "🥺", "😦"),
             "❤️ Gestos" to listOf("👍", "👎", "👏", "🙌", "👐", "🤲", "🤝", "🙏", "💪", "👊", "✊", "🤛", "🤜", "🤞", "✌️", "🤟", "🤘", "👌", "🤌", "🤏", "👈", "👉", "👆", "👇", "☝️", "✋", "🤚", "🖐️", "🖖", "👋", "🤙", "✍️", "💅", "👄", "👅", "👂", "👃", "👣", "👁️", "👀", "🧠", "🦴", "👤", "👥", "🫂", "❤️", "🧡", "💛", "💚", "💙", "💜", "🖤", "🤍", "🤎", "💔", "❤️‍🔥", "💖", "💗", "💘", "💕", "💞", "💓", "❣️"),
@@ -2652,7 +2683,6 @@ class TermKeyIMEService : InputMethodService() {
             }
         }
 
-        emojiPanel.visibility = if (emojiPanel.isVisible) View.GONE else View.VISIBLE
         scheduleAdaptiveTouchTargetsUpdate()
     }
 
