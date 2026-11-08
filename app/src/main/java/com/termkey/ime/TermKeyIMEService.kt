@@ -2106,7 +2106,7 @@ class TermKeyIMEService : InputMethodService() {
         }
 
         adaptiveTouchDelegate.updateTargets(targets)
-        host.touchDelegate = adaptiveTouchDelegate
+        host.touchDelegate = if (targets.isEmpty()) null else adaptiveTouchDelegate
     }
 
     private fun getBoundsRelativeToHost(host: ViewGroup, view: View): Rect {
@@ -2706,10 +2706,13 @@ class TermKeyIMEService : InputMethodService() {
             R.id.num_plus to "+",
         )
         numMap.forEach { (viewId, charStr) ->
-            rootView.findViewById<View>(viewId)?.setOnClickListener {
-                feedbackVibrate(14)
-                feedbackSound()
-                currentInputConnection?.commitText(charStr, 1)
+            rootView.findViewById<View>(viewId)?.apply {
+                isClickable = true
+                setOnClickListener {
+                    feedbackVibrate(14)
+                    feedbackSound()
+                    currentInputConnection?.commitText(charStr, 1)
+                }
             }
         }
         rootView.findViewById<View>(R.id.num_backspace)?.setOnClickListener {
@@ -2734,6 +2737,7 @@ class TermKeyIMEService : InputMethodService() {
             KeyboardLayoutMode.COMPACT_NUMERIC
         }
         updateKeyboardLayoutUi()
+        scheduleAdaptiveTouchTargetsUpdate()
     }
 
     // ── Haptic / Audio feedback ────────────────────────────────────────────────
