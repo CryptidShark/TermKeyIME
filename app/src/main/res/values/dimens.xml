@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <dimen name="key_height_default">42dp</dimen>
+    <dimen name="key_height_default">48dp</dimen>
     <dimen name="key_height_small">36dp</dimen>
     <dimen name="key_height_large">50dp</dimen>
     <dimen name="key_height_xlarge">58dp</dimen>

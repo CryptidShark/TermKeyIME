@@ -1926,6 +1926,12 @@ class TermKeyIMEService : InputMethodService() {
             KeyboardLayoutMode.FULL -> emptySet()
         }
 
+        val compactLatinKeys = visibleCompactKeys + setOf(
+            R.id.key_comma, R.id.key_period, R.id.key_slash, R.id.key_quote,
+            R.id.key_shift, R.id.key_emoji, R.id.key_lang, R.id.key_space,
+            R.id.key_numbers, R.id.key_backspace, R.id.key_enter,
+        )
+
         languageKey.isActivated = (currentInputLang != InputLanguage.EN)
         languageKey.text = when (currentInputLang) {
             InputLanguage.EN -> getString(R.string.key_lang_en)
@@ -1957,7 +1963,7 @@ class TermKeyIMEService : InputMethodService() {
                 ALL_KEY_IDS.forEach { keyId ->
                     rootView.findViewById<View>(keyId)?.visibility =
                         when {
-                            visibleCompactKeys.contains(keyId) -> View.VISIBLE
+                            compactLatinKeys.contains(keyId) -> View.VISIBLE
                             compactInvisibleKeys.contains(keyId) -> View.INVISIBLE
                             else -> View.GONE
                         }
