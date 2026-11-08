@@ -33,10 +33,12 @@
     <string name="pref_keyboard_font">Fuente / Tipo de letra</string>
     <string name="pref_key_text_size">Tamaño de texto de teclas</string>
     <string name="pref_key_height">Altura de teclas</string>
-    <string name="pref_custom_surface_color">Color de fondo del teclado (#RRGGBB)</string>
-    <string name="pref_custom_key_bg_color">Color de fondo de teclas (#RRGGBB)</string>
-    <string name="pref_custom_text_color">Color del texto de teclas (#RRGGBB)</string>
-    <string name="pref_custom_accent_color">Color de acento / resalte (#RRGGBB)</string>
+    <string name="pref_custom_surface_color">Fondo del teclado</string>
+    <string name="pref_custom_key_bg_color">Fondo de las teclas</string>
+    <string name="pref_custom_text_color">Texto de las teclas</string>
+    <string name="pref_custom_accent_color">Color de acento</string>
+    <string name="pref_color_choose">Toca para elegir un color</string>
+    <string name="pref_color_preview">Vista previa</string>
 
     <string name="pref_show_fn_row">Mostrar fila F1–F12</string>
     <string name="pref_show_fn_row_summary">Muestra la fila de teclas de función en la parte superior del teclado</string>

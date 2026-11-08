@@ -47,19 +47,19 @@
     </PreferenceCategory>
 
     <PreferenceCategory android:title="@string/pref_category_custom_colors">
-        <EditTextPreference
+        <Preference
             android:key="custom_surface_color"
             android:title="@string/pref_custom_surface_color"
             android:defaultValue="#0D1117" />
-        <EditTextPreference
+        <Preference
             android:key="custom_key_bg_color"
             android:title="@string/pref_custom_key_bg_color"
             android:defaultValue="#21262D" />
-        <EditTextPreference
+        <Preference
             android:key="custom_text_color"
             android:title="@string/pref_custom_text_color"
             android:defaultValue="#FFFFFF" />
-        <EditTextPreference
+        <Preference
             android:key="custom_accent_color"
             android:title="@string/pref_custom_accent_color"
             android:defaultValue="#00FF66" />

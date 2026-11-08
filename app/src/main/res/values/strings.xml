@@ -34,10 +34,12 @@
     <string name="pref_keyboard_font">Keyboard font family</string>
     <string name="pref_key_text_size">Key text size</string>
     <string name="pref_key_height">Key height</string>
-    <string name="pref_custom_surface_color">Keyboard background color (#RRGGBB)</string>
-    <string name="pref_custom_key_bg_color">Key background color (#RRGGBB)</string>
-    <string name="pref_custom_text_color">Key text color (#RRGGBB)</string>
-    <string name="pref_custom_accent_color">Accent highlight color (#RRGGBB)</string>
+    <string name="pref_custom_surface_color">Keyboard background</string>
+    <string name="pref_custom_key_bg_color">Key background</string>
+    <string name="pref_custom_text_color">Key text</string>
+    <string name="pref_custom_accent_color">Accent color</string>
+    <string name="pref_color_choose">Tap to choose a color</string>
+    <string name="pref_color_preview">Preview</string>
 
     <string name="pref_show_fn_row">Show F1–F12 row</string>
     <string name="pref_show_fn_row_summary">Display function key row at top of keyboard</string>
