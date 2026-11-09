@@ -1,121 +1,65 @@
 # Cythernoir TermKey
 
-Built for terminals. Tuned for multi-language input and speed.
-
-Advanced Android terminal and productivity keyboard featuring English, Spanish, and Chinese (Natural Shuangpin) layouts, gesture swipe-to-type, customizable color themes, editable macros, and streaming voice input.
+TermKey is an Android on-screen keyboard for terminal work and everyday English and Spanish typing. It combines a compact QWERTY layout with terminal controls, a numeric keypad, an emoji panel, word suggestions, and configurable themes.
 
 ## Features
 
-- Terminal-first key behavior: sticky `Ctrl` / `Alt` / `Shift`, real control characters, `Alt` as `ESC + key`, F1-F12, arrows, PgUp/PgDn, Home/End.
-- Multiple keyboard layouts & languages:
-  - `COMPACT_EN`: Standard QWERTY English layout.
-  - `COMPACT_ES`: Standard QWERTY Spanish layout with base prediction dictionary.
-  - `COMPACT_ZH`: Chinese compact layout for double-pinyin (Shuangpin) input.
-  - `FULL`: Full terminal keyboard with function row and control keys.
-- Gesture Swipe-to-Type:
-  - Slide your finger across character keys to trace and type words automatically in English and Spanish.
-- Customizable Keyboard Themes & Colors:
-  - Terminal Green (Default)
-  - Classic Dark
-  - Terminal Amber
-  - Cyberpunk Purple
-  - Light Theme
-  - Crimson Red
-  - Dynamic Wallpaper / System Theme
-  - State-aware touch visual feedback on keypress.
-- Natural Shuangpin Chinese input:
-  - offline lexicon-backed candidate lookup
-  - phrase and sentence-first candidate ordering
-  - local user frequency learning
-  - candidate bar click-to-commit
-  - `Space` confirms the first Chinese candidate by default
-- Streaming voice input using Volcengine WebSocket ASR.
-- Editable macro bar with custom macros and pre-configured Spanish terminal commands (`ayuda`, `listar`, `estado`, `limpiar`, `ejecutar`, etc.).
-- Compact-mode touch target expansion, hold-to-delete, and swipe-up clear for delete keys.
+- Compact QWERTY layouts for English and Spanish, including the Spanish `ñ` key.
+- Numeric keypad with digits, punctuation, arithmetic operators, backspace, space, and enter.
+- Emoji panel with scrollable categories and a visible button to return to the keyboard.
+- Terminal controls: `Ctrl`, `Alt`, `Shift`, `Esc`, `Tab`, arrows, `Home`, `End`, `PgUp`, `PgDn`, and `F1`–`F12` in the full layout.
+- English and Spanish word suggestions, swipe typing, and an optional learned user dictionary.
+- Customizable keyboard themes, key size and font, haptic/audio feedback, and one-handed layout.
+- Editable quick-insert macros.
+- Optional streaming voice input and OpenAI-compatible text tools, configured by the user.
 
-## Current Input Behavior
+## Keyboard use
 
-### Spanish mode (`ES`)
+- Tap `123` to open the numeric keypad; tap `ABC` to return to the current letter layout.
+- Tap the emoji key to open the emoji categories. Tap the keyboard icon to return to typing.
+- Tap the language key to switch English/Spanish. Long-press it to switch between compact and full terminal layouts.
+- Use the full layout when terminal-specific keys such as function keys or control modifiers are needed.
+- Use the candidate strip to insert a suggested word. Backspace supports repeat and the configured clear gesture.
 
-- Tap the language key (`EN` / `ES` / `ZH`) or select default input language in settings to switch into Spanish mode.
-- Features base Spanish word prediction dictionary for smart autocomplete and spell correction.
-- Supports swipe-to-type gesture typing.
+The numeric keypad is also selected automatically for number and phone input fields. Password fields suppress suggestions and learned input.
 
-### Chinese mode (`ZH`)
+## Requirements
 
-- Tap `中` to switch into Chinese mode.
-- Letter keys enter Natural Shuangpin code.
-- The candidate bar stays visible in Chinese mode.
-- The first candidate is used as composing text.
-- `Space` confirms the first candidate and clears the current input buffer.
+- Android Studio with Android SDK 37 installed.
+- JDK 17 or a JDK supported by the installed Android Gradle Plugin.
+- `minSdk` 26 and `targetSdk` 36 (Android 16).
 
-### English mode (`EN`)
+## Build and test
 
-- Compact English keeps letters, numbers, and common punctuation visible.
-- `FULL` mode restores the full terminal layout.
+On Windows PowerShell:
 
-### Voice input
+```powershell
+.\gradlew.bat testDebugUnitTest assembleDebug
+```
 
-- Tap `MIC` to start streaming recognition.
-- Recognition text appears live in the current input field.
-- Tap `MIC` again to stop and finalize.
-- Requires microphone permission plus Volcengine `APP ID`, `Access Token`, and `Resource ID` in settings.
-
-## Build
-
-### Requirements
-
-- Android Studio Hedgehog or newer
-- JDK 17
-- Android SDK 34
-- minSdk 26
-
-### Command
+On macOS/Linux:
 
 ```bash
-./gradlew installDebug
+./gradlew testDebugUnitTest assembleDebug
 ```
 
-## Setup
+To install on a connected device or emulator, run `installDebug` instead of `assembleDebug`. Then open TermKey, enable it in Android's keyboard settings, and select it as the active input method.
 
-1. Install the debug build.
-2. Open the `Cythernoir TermKey` app.
-3. Enable the input method in Android keyboard settings.
-4. Switch the active keyboard to `Cythernoir TermKey`.
-5. Open `Settings` inside the app to configure themes, language, macros, or voice input.
+For manual input checks, launch `com.termkey.ime/.InputTestActivity`. Verify English and Spanish typing, `ñ`, suggestions, numeric keypad entry and return to `ABC`, emoji category scrolling and insertion, and switching back from the emoji panel.
 
-## Settings
+The current automated validation passes `testDebugUnitTest` (23 tests) and `assembleDebug`. Device-specific behavior still needs to be checked on a connected emulator or phone using the manual checks above.
 
-Key settings currently exposed:
+## Project layout
 
-- Keyboard theme selection (7 themes including Dynamic / System Theme)
-- Default input language (English, Spanish, Chinese)
-- Swipe-to-type gesture typing toggle
-- Show/hide macro bar
-- Show/hide F-key row
-- Key height
-- Vibrate on keypress
-- Sound on keypress
-- Sticky modifiers
-- Swipe-up & long-press alternate symbols
-- Voice input configuration
-- Macro editing and reset
+- `app/src/main/java/com/termkey/ime/`: IME service, settings, dictionaries, macros, and supporting clients.
+- `app/src/main/res/layout/`: keyboard and activity layouts.
+- `app/src/main/res/xml/`: input method and preference configuration.
+- `app/src/main/assets/`: bundled offline data.
+- `app/src/test/java/com/termkey/ime/`: JVM unit tests.
 
-## Project Structure
+## Configuration and privacy
 
-```text
-app/src/main/java/com/termkey/ime/
-├── TermKeyIMEService.kt
-├── NaturalShuangpinEngine.kt
-├── ChineseLexiconStore.kt
-├── SpanishLexiconStore.kt
-├── KeyboardTheme.kt
-├── VolcengineVoiceInputClient.kt
-├── MacroManager.kt
-├── MacroEditorActivity.kt
-├── SettingsActivity.kt
-└── SetupActivity.kt
-```
+Voice and LLM features are optional and require the user's own service configuration. Do not commit API keys, voice credentials, or signing credentials. Use `keystore.properties.example` as the local signing template.
 
 ## License
 
