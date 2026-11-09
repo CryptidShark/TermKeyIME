@@ -528,7 +528,6 @@ class TermKeyIMEService : InputMethodService() {
         emojiPanel = rootView.findViewById(R.id.emoji_panel)
         emojiGrid = rootView.findViewById(R.id.emoji_grid)
         updateKeyboardLayoutUi()
-        adaptiveTouchDelegate = AdaptiveTouchDelegateGroup(rootView)
         swipeTrailView = rootView.findViewById(R.id.keyboard_content)
         rootView.touchDelegate = null
         scheduleAdaptiveTouchTargetsUpdate()
@@ -568,6 +567,7 @@ class TermKeyIMEService : InputMethodService() {
     }
 
     private fun handleInputStart(info: EditorInfo?) {
+        if (::emojiPanel.isInitialized) emojiPanel.visibility = View.GONE
         val incognitoPref = prefs.getBoolean("incognito_mode", false)
         val inputType = info?.inputType ?: 0
         val variation = inputType and EditorInfo.TYPE_MASK_VARIATION
@@ -2043,9 +2043,7 @@ class TermKeyIMEService : InputMethodService() {
     }
 
     private fun scheduleAdaptiveTouchTargetsUpdate() {
-        if (!::rootView.isInitialized) return
-        rootView.removeCallbacks(adaptiveTouchRefreshRunnable)
-        rootView.post(adaptiveTouchRefreshRunnable)
+        if (::rootView.isInitialized) rootView.touchDelegate = null
     }
 
     private fun rebuildAdaptiveTouchTargets() {
@@ -2528,6 +2526,10 @@ class TermKeyIMEService : InputMethodService() {
         feedbackVibrate(14)
         feedbackSound()
         emojiPanel.visibility = if (emojiPanel.isVisible) View.GONE else View.VISIBLE
+        rootView.findViewById<View>(R.id.emoji_back_to_keyboard)?.setOnClickListener {
+            emojiPanel.visibility = View.GONE
+            updateKeyboardLayoutUi()
+        }
         if (emojiPanel.isVisible) {
             keyRows.forEach { it.visibility = View.GONE }
             numericPad.visibility = View.GONE

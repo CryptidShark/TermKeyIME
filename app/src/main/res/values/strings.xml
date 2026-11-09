@@ -130,6 +130,7 @@
     <string name="key_lang_en">EN</string>
     <string name="key_lang_es">ES</string>
     <string name="emoji_dialog_title">Emojis</string>
+    <string name="emoji_back_to_keyboard">Back to keyboard</string>
     <string name="pref_incognito_mode">Incognito mode</string>
     <string name="pref_incognito_mode_summary">Disable learning and history storage for privacy</string>
     <string name="pref_clear_dictionary">Clear user dictionary</string>
