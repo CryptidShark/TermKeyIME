@@ -527,9 +527,10 @@ class TermKeyIMEService : InputMethodService() {
         numericPad = rootView.findViewById(R.id.numeric_pad)
         emojiPanel = rootView.findViewById(R.id.emoji_panel)
         emojiGrid = rootView.findViewById(R.id.emoji_grid)
+        updateKeyboardLayoutUi()
         adaptiveTouchDelegate = AdaptiveTouchDelegateGroup(rootView)
         swipeTrailView = rootView.findViewById(R.id.keyboard_content)
-        rootView.touchDelegate = adaptiveTouchDelegate
+        rootView.touchDelegate = null
         scheduleAdaptiveTouchTargetsUpdate()
 
         ViewCompat.setOnApplyWindowInsetsListener(rootView) { v, insets ->
@@ -2048,105 +2049,7 @@ class TermKeyIMEService : InputMethodService() {
     }
 
     private fun rebuildAdaptiveTouchTargets() {
-        val host = rootView as? ViewGroup ?: return
-        if (!::adaptiveTouchDelegate.isInitialized) return
-
-        val visibleRows = buildList {
-            if (::fnRow.isInitialized && fnRow.isVisible) add(fnRow as ViewGroup)
-            if (::keyRows.isInitialized) {
-                keyRows.filterTo(this) { it.isVisible }
-            }
-            if (::numericPad.isInitialized && numericPad.isVisible) {
-                for (index in 0 until (numericPad as ViewGroup).childCount) {
-                    val row = (numericPad as ViewGroup).getChildAt(index)
-                    if (row is ViewGroup && row.isVisible) add(row)
-                }
-            }
-        }
-        val touchRows = if (::emojiPanel.isInitialized && emojiPanel.isVisible) emptyList() else visibleRows
-        if (touchRows.isEmpty()) {
-            adaptiveTouchDelegate.updateTargets(emptyList())
-            host.touchDelegate = adaptiveTouchDelegate
-            return
-        }
-
-        val rowStates = touchRows.mapNotNull { row ->
-            val keyBounds = buildList {
-                for (index in 0 until row.childCount) {
-                    val child = row.getChildAt(index)
-                    if (!child.isVisible || !child.isClickable || child.width <= 0 || child.height <= 0) continue
-                    add(child to getBoundsRelativeToHost(host, child))
-                }
-            }.sortedBy { it.second.left }
-            if (keyBounds.isEmpty()) {
-                null
-            } else {
-                RowTouchState(
-                    bounds = getBoundsRelativeToHost(host, row),
-                    keys = keyBounds,
-                )
-            }
-        }
-
-        if (rowStates.isEmpty()) {
-            adaptiveTouchDelegate.updateTargets(emptyList())
-            host.touchDelegate = adaptiveTouchDelegate
-            return
-        }
-
-        val extraSlopPx = maxOf(
-            ViewConfiguration.get(this).scaledTouchSlop * 2,
-            (48f * resources.displayMetrics.density).toInt(),
-        )
-
-        val targets = buildList {
-            rowStates.forEachIndexed { rowIndex, rowState ->
-                val bandTop = if (rowIndex == 0) {
-                    rowState.bounds.top
-                } else {
-                    (rowStates[rowIndex - 1].bounds.bottom + rowState.bounds.top) / 2
-                }
-                val bandBottom = if (rowIndex == rowStates.lastIndex) {
-                    rowState.bounds.bottom
-                } else {
-                    (rowState.bounds.bottom + rowStates[rowIndex + 1].bounds.top) / 2
-                }
-
-                rowState.keys.forEachIndexed { keyIndex, (view, actualBounds) ->
-                    val left = if (keyIndex == 0) {
-                        rowState.bounds.left
-                    } else {
-                        (rowState.keys[keyIndex - 1].second.centerX() + actualBounds.centerX()) / 2
-                    }
-                    val right = if (keyIndex == rowState.keys.lastIndex) {
-                        rowState.bounds.right
-                    } else {
-                        (actualBounds.centerX() + rowState.keys[keyIndex + 1].second.centerX()) / 2
-                    }
-                    val delegateBounds = Rect(left, bandTop, right, bandBottom)
-                    val slopBounds = Rect(delegateBounds).apply {
-                        inset(-extraSlopPx, -extraSlopPx)
-                    }
-                    add(
-                        AdaptiveTouchTarget(
-                            view = view,
-                            actualBounds = actualBounds,
-                            delegateBounds = delegateBounds,
-                            slopBounds = slopBounds,
-                        ),
-                    )
-                }
-            }
-        }
-
-        adaptiveTouchDelegate.updateTargets(targets)
-        host.touchDelegate = if (targets.isEmpty()) null else adaptiveTouchDelegate
-    }
-
-    private fun getBoundsRelativeToHost(host: ViewGroup, view: View): Rect {
-        return Rect(0, 0, view.width, view.height).also { rect ->
-            host.offsetDescendantRectToMyCoords(view, rect)
-        }
+        if (::rootView.isInitialized) rootView.touchDelegate = null
     }
 
     private fun applyDynamicKeyLabels() {
