@@ -629,8 +629,8 @@ class TermKeyIMEService : InputMethodService() {
         reorder(keyRows[2], listOf(R.id.key_ctrl, R.id.key_semicolon, R.id.key_a, R.id.key_s, R.id.key_d, R.id.key_f_key, R.id.key_g, R.id.key_h, R.id.key_j, R.id.key_k, R.id.key_l, R.id.key_quote))
         moveKey(R.id.key_comma, keyRows[4])
         moveKey(R.id.key_period, keyRows[4])
-        reorder(keyRows[3], listOf(R.id.key_esc, R.id.key_alt, R.id.key_shift, R.id.key_z, R.id.key_x, R.id.key_c, R.id.key_v, R.id.key_b, R.id.key_n, R.id.key_m, R.id.key_slash, R.id.key_arrow_up, R.id.key_backspace), mapOf(R.id.key_shift to 1.4f, R.id.key_backspace to 1.4f))
-        reorder(keyRows[4], listOf(R.id.key_emoji, R.id.key_numbers, R.id.key_comma, R.id.key_lang, R.id.key_space, R.id.key_period, R.id.key_enter, R.id.key_one_hand, R.id.key_page_up, R.id.key_page_down, R.id.key_home, R.id.key_end, R.id.key_delete, R.id.key_arrow_left, R.id.key_arrow_down, R.id.key_arrow_right), mapOf(R.id.key_space to 4.2f, R.id.key_enter to 1.4f))
+        reorder(keyRows[3], listOf(R.id.key_esc, R.id.key_alt, R.id.key_shift, R.id.key_z, R.id.key_x, R.id.key_c, R.id.key_v, R.id.key_b, R.id.key_n, R.id.key_m, R.id.key_slash, R.id.key_arrow_up, R.id.key_backspace), mapOf(R.id.key_shift to 1.25f, R.id.key_backspace to 1.7f))
+        reorder(keyRows[4], listOf(R.id.key_emoji, R.id.key_numbers, R.id.key_comma, R.id.key_lang, R.id.key_space, R.id.key_period, R.id.key_enter, R.id.key_one_hand, R.id.key_page_up, R.id.key_page_down, R.id.key_home, R.id.key_end, R.id.key_delete, R.id.key_arrow_left, R.id.key_arrow_down, R.id.key_arrow_right), mapOf(R.id.key_emoji to 1.1f, R.id.key_numbers to 1.1f, R.id.key_lang to 0.9f, R.id.key_space to 4.2f, R.id.key_enter to 1.4f))
     }
 
     override fun onFinishInputView(finishingInput: Boolean) {
@@ -1626,7 +1626,6 @@ class TermKeyIMEService : InputMethodService() {
         if (currentInputLang == InputLanguage.ES && viewId == R.id.key_quote) return null
         return when (viewId) {
             R.id.key_esc -> "!"
-            R.id.key_backspace -> "?"
             R.id.key_end -> ","
             R.id.key_delete -> "."
             else -> null
@@ -1802,15 +1801,7 @@ class TermKeyIMEService : InputMethodService() {
     private fun rebuildEmptyCandidateBar() {
         if (!::candidateContainer.isInitialized) return
         candidateContainer.removeAllViews()
-        val hintView = layoutInflater.inflate(R.layout.macro_button, candidateContainer, false) as TextView
-        hintView.text = when (currentInputLang) {
-            InputLanguage.ES -> "Escribe en español..."
-            InputLanguage.EN -> "TermKey Keyboard"
-        }
-        hintView.setTextColor(ContextCompat.getColor(this, R.color.terminal_text_dim))
-        hintView.isEnabled = false
-        candidateContainer.addView(hintView)
-        candidateScrollView.visibility = View.VISIBLE
+        candidateScrollView.visibility = View.GONE
     }
 
     private fun refreshCandidateArea() {
@@ -1966,7 +1957,8 @@ class TermKeyIMEService : InputMethodService() {
         val compactLatinKeys = visibleCompactKeys
 
         languageKey.isActivated = (currentInputLang != InputLanguage.EN)
-        languageKey.text = when (currentInputLang) {
+        languageKey.text = "🌐"
+        languageKey.contentDescription = when (currentInputLang) {
             InputLanguage.EN -> getString(R.string.key_lang_en)
             InputLanguage.ES -> getString(R.string.key_lang_es)
         }
@@ -2033,13 +2025,13 @@ class TermKeyIMEService : InputMethodService() {
         }
 
         if (::numbersKey.isInitialized) {
-            numbersKey.text = if (layoutMode == KeyboardLayoutMode.COMPACT_NUMERIC) "ABC" else "123"
+            numbersKey.text = if (layoutMode == KeyboardLayoutMode.COMPACT_NUMERIC) "ABC" else "?123"
         }
 
         val spaceKey = rootView.findViewById<TextView>(R.id.key_space)
         spaceKey?.text = when (currentInputLang) {
-            InputLanguage.EN -> "EN"
-            InputLanguage.ES -> "ES"
+            InputLanguage.EN -> "English"
+            InputLanguage.ES -> "Español"
         }
 
         when (layoutMode) {
@@ -2087,26 +2079,14 @@ class TermKeyIMEService : InputMethodService() {
             )
         } else if (currentInputLang == InputLanguage.ES) {
             mapOf(
-                R.id.key_esc to "!",
-                R.id.key_backspace to "?",
-                R.id.key_home to "!#1",
-                R.id.key_end to ",",
-                R.id.key_delete to ".",
-                R.id.key_space to "Español (ES)",
-                R.id.key_arrow_up to "⌫",
-                R.id.key_arrow_right to "↩",
+                R.id.key_numbers to "?123",
+                R.id.key_enter to "↵",
                 R.id.key_quote to if (shiftActive) "Ñ" else "ñ",
             )
         } else {
             mapOf(
-                R.id.key_esc to "!",
-                R.id.key_backspace to "?",
-                R.id.key_home to "!#1",
-                R.id.key_end to ",",
-                R.id.key_delete to ".",
-                R.id.key_space to "English (US)",
-                R.id.key_arrow_up to "⌫",
-                R.id.key_arrow_right to "↩",
+                R.id.key_numbers to "?123",
+                R.id.key_enter to "↵",
             )
         }
 
