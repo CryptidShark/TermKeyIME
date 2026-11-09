@@ -446,6 +446,7 @@ class TermKeyIMEService : InputMethodService() {
     private var layoutMode = KeyboardLayoutMode.COMPACT_EN
     private var previousCompactLayoutMode = KeyboardLayoutMode.COMPACT_EN
     private var pcRowsArranged = false
+    private var symbolRowsArranged = false
     private var llmClient: OpenAiCompatLlmClient? = null
     private var llmPreviewState: LlmPreviewState? = null
     private val repeatHandler = Handler(Looper.getMainLooper())
@@ -629,6 +630,38 @@ class TermKeyIMEService : InputMethodService() {
         reorder(keyRows[2], listOf(R.id.key_ctrl, R.id.key_semicolon, R.id.key_a, R.id.key_s, R.id.key_d, R.id.key_f_key, R.id.key_g, R.id.key_h, R.id.key_j, R.id.key_k, R.id.key_l, R.id.key_quote, R.id.key_enter), mapOf(R.id.key_ctrl to 1.4f, R.id.key_enter to 1.8f))
         reorder(keyRows[3], listOf(R.id.key_shift, R.id.key_z, R.id.key_x, R.id.key_c, R.id.key_v, R.id.key_b, R.id.key_n, R.id.key_m, R.id.key_comma, R.id.key_period, R.id.key_slash, R.id.key_arrow_up), mapOf(R.id.key_shift to 1.5f, R.id.key_arrow_up to 1.2f))
         reorder(keyRows[4], listOf(R.id.key_esc, R.id.key_alt, R.id.key_emoji, R.id.key_numbers, R.id.key_lang, R.id.key_space, R.id.key_delete, R.id.key_arrow_left, R.id.key_arrow_down, R.id.key_arrow_right, R.id.key_one_hand, R.id.key_page_up, R.id.key_page_down, R.id.key_home, R.id.key_end), mapOf(R.id.key_esc to 1.0f, R.id.key_alt to 1.0f, R.id.key_emoji to 1.0f, R.id.key_numbers to 1.0f, R.id.key_lang to 1.0f, R.id.key_space to 3.4f, R.id.key_delete to 1.0f, R.id.key_arrow_left to 1.0f, R.id.key_arrow_down to 1.0f, R.id.key_arrow_right to 1.0f))
+    }
+
+    private fun arrangeSymbolKeyboardRow() {
+        reorder(
+            keyRows[4],
+            listOf(
+                R.id.key_home,
+                R.id.key_emoji,
+                R.id.key_numbers,
+                R.id.key_comma,
+                R.id.key_lang,
+                R.id.key_space,
+                R.id.key_period,
+                R.id.key_enter,
+                R.id.key_one_hand,
+                R.id.key_page_up,
+                R.id.key_page_down,
+                R.id.key_end,
+                R.id.key_delete,
+                R.id.key_arrow_left,
+                R.id.key_arrow_down,
+                R.id.key_arrow_right,
+            ),
+            mapOf(
+                R.id.key_home to 1.1f,
+                R.id.key_emoji to 1.0f,
+                R.id.key_numbers to 1.0f,
+                R.id.key_lang to 0.9f,
+                R.id.key_space to 4.2f,
+                R.id.key_enter to 1.4f,
+            ),
+        )
     }
 
     private fun moveKeyToRow(viewId: Int, destination: LinearLayout) {
@@ -1934,6 +1967,12 @@ class TermKeyIMEService : InputMethodService() {
         if (shouldArrangePcRows != pcRowsArranged) {
             if (shouldArrangePcRows) arrangePcKeyboardRows() else arrangeMobileKeyboardRows()
             pcRowsArranged = shouldArrangePcRows
+            symbolRowsArranged = false
+        }
+        val shouldArrangeSymbolRow = !shouldArrangePcRows && layoutMode == KeyboardLayoutMode.COMPACT_SYMBOL
+        if (shouldArrangeSymbolRow != symbolRowsArranged) {
+            if (shouldArrangeSymbolRow) arrangeSymbolKeyboardRow() else arrangeMobileKeyboardRows()
+            symbolRowsArranged = shouldArrangeSymbolRow
         }
         val showMacro = prefs.getBoolean("show_macro_bar", true)
         val showFn = prefs.getBoolean("show_fn_row", true)
@@ -2648,8 +2687,10 @@ class TermKeyIMEService : InputMethodService() {
         }
         rootView.findViewById<View>(R.id.num_abc)?.setOnClickListener {
             feedbackVibrate(15)
-            toggleNumericMode()
+            feedbackSound()
+            toggleSymbolMode()
         }
+        rootView.findViewById<TextView>(R.id.num_abc)?.text = "=\\<"
     }
 
     private fun toggleNumericMode() {
