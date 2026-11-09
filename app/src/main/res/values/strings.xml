@@ -2,7 +2,7 @@
 <resources>
     <string name="app_name">Cythernoir TermKey</string>
     <string name="ime_name">TermKey – Linux Terminal Keyboard</string>
-    <string name="subtype_normal">English (US)</string>
+    <string name="subtype_normal">Español (Latinoamérica)</string>
     <string name="settings_title">TermKey Settings</string>
     <string name="input_test_title">Input Test</string>
     <string name="input_test_hint">Use this page to verify macros, voice input, delete gestures, and LLM tools on a real text field.</string>

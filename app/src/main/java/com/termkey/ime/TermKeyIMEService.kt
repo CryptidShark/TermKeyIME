@@ -133,8 +133,6 @@ class TermKeyIMEService : InputMethodService() {
             R.id.key_8,
             R.id.key_9,
             R.id.key_0,
-            R.id.key_minus,
-            R.id.key_equals,
             R.id.key_backspace,
             R.id.key_q,
             R.id.key_w,
@@ -155,7 +153,6 @@ class TermKeyIMEService : InputMethodService() {
             R.id.key_j,
             R.id.key_k,
             R.id.key_l,
-            R.id.key_esc,
             R.id.key_z,
             R.id.key_x,
             R.id.key_c,
@@ -163,17 +160,14 @@ class TermKeyIMEService : InputMethodService() {
             R.id.key_b,
             R.id.key_n,
             R.id.key_m,
-            R.id.key_arrow_up,
             R.id.key_shift,
             R.id.key_lang,
             R.id.key_emoji,
-            R.id.key_one_hand,
-            R.id.key_home,
-            R.id.key_end,
             R.id.key_space,
-            R.id.key_delete,
             R.id.key_numbers,
-            R.id.key_arrow_right,
+            R.id.key_enter,
+            R.id.key_comma,
+            R.id.key_period,
         )
 
         private val COMPACT_ES_KEY_IDS = COMPACT_EN_KEY_IDS + setOf(
@@ -527,6 +521,8 @@ class TermKeyIMEService : InputMethodService() {
         numericPad = rootView.findViewById(R.id.numeric_pad)
         emojiPanel = rootView.findViewById(R.id.emoji_panel)
         emojiGrid = rootView.findViewById(R.id.emoji_grid)
+        arrangeMobileKeyboardRows()
+        applyThemePalette(KeyboardTheme.getPalette(prefs.getString("keyboard_theme", "light"), prefs))
         updateKeyboardLayoutUi()
         swipeTrailView = rootView.findViewById(R.id.keyboard_content)
         rootView.touchDelegate = null
@@ -607,6 +603,36 @@ class TermKeyIMEService : InputMethodService() {
         }
     }
 
+    private fun arrangeMobileKeyboardRows() {
+        fun moveKey(viewId: Int, destination: LinearLayout) {
+            val key = rootView.findViewById<View>(viewId) ?: return
+            (key.parent as? ViewGroup)?.removeView(key)
+            destination.addView(key)
+        }
+
+        moveKey(R.id.key_backspace, keyRows[3])
+        moveKey(R.id.key_shift, keyRows[3])
+        moveKey(R.id.key_enter, keyRows[4])
+
+        fun reorder(row: LinearLayout, ids: List<Int>, weights: Map<Int, Float> = emptyMap()) {
+            val children = (0 until row.childCount).map { row.getChildAt(it) }
+            val byId = children.associateBy { it.id }
+            val ordered = ids.mapNotNull(byId::get) + children.filter { it.id !in ids }
+            row.removeAllViews()
+            ordered.forEach { child ->
+                val weight = weights[child.id] ?: 1f
+                row.addView(child, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, weight))
+            }
+        }
+
+        reorder(keyRows[1], listOf(R.id.key_tab, R.id.key_lbracket, R.id.key_q, R.id.key_w, R.id.key_e, R.id.key_r, R.id.key_t, R.id.key_y, R.id.key_u, R.id.key_i, R.id.key_o, R.id.key_p, R.id.key_rbracket, R.id.key_backslash))
+        reorder(keyRows[2], listOf(R.id.key_ctrl, R.id.key_semicolon, R.id.key_a, R.id.key_s, R.id.key_d, R.id.key_f_key, R.id.key_g, R.id.key_h, R.id.key_j, R.id.key_k, R.id.key_l, R.id.key_quote))
+        moveKey(R.id.key_comma, keyRows[4])
+        moveKey(R.id.key_period, keyRows[4])
+        reorder(keyRows[3], listOf(R.id.key_esc, R.id.key_alt, R.id.key_shift, R.id.key_z, R.id.key_x, R.id.key_c, R.id.key_v, R.id.key_b, R.id.key_n, R.id.key_m, R.id.key_slash, R.id.key_arrow_up, R.id.key_backspace), mapOf(R.id.key_shift to 1.4f, R.id.key_backspace to 1.4f))
+        reorder(keyRows[4], listOf(R.id.key_emoji, R.id.key_numbers, R.id.key_comma, R.id.key_lang, R.id.key_space, R.id.key_period, R.id.key_enter, R.id.key_one_hand, R.id.key_page_up, R.id.key_page_down, R.id.key_home, R.id.key_end, R.id.key_delete, R.id.key_arrow_left, R.id.key_arrow_down, R.id.key_arrow_right), mapOf(R.id.key_space to 4.2f, R.id.key_enter to 1.4f))
+    }
+
     override fun onFinishInputView(finishingInput: Boolean) {
         super.onFinishInputView(finishingInput)
         stopDeleteRepeats()
@@ -649,12 +675,12 @@ class TermKeyIMEService : InputMethodService() {
     // ── Preferences ──────────────────────────────────────────────────────────
 
     private fun applyPreferences() {
-        val themeKey = prefs.getString("keyboard_theme", "terminal_green")
+        val themeKey = prefs.getString("keyboard_theme", "light")
         val palette = KeyboardTheme.getPalette(themeKey, prefs)
         applyThemePalette(palette)
         applyKeyboardFont()
 
-        val langPref = prefs.getString("input_language", "en")
+        val langPref = prefs.getString("input_language", "es")
         val newLang = when (langPref) {
             "es" -> InputLanguage.ES
             else -> InputLanguage.EN
@@ -675,7 +701,7 @@ class TermKeyIMEService : InputMethodService() {
     }
 
     private fun applyKeyboardFont() {
-        val fontPref = prefs.getString("keyboard_font", "monospace")
+        val fontPref = prefs.getString("keyboard_font", "sans-serif")
         val typeface = when (fontPref) {
             "sans-serif" -> android.graphics.Typeface.SANS_SERIF
             "serif" -> android.graphics.Typeface.SERIF
@@ -741,6 +767,16 @@ class TermKeyIMEService : InputMethodService() {
                 applyToView(fnRow.getChildAt(i))
             }
         }
+        if (::numericPad.isInitialized) {
+            fun applyToTree(view: View) {
+                applyToView(view)
+                if (view is ViewGroup) {
+                    for (index in 0 until view.childCount) applyToTree(view.getChildAt(index))
+                }
+            }
+            applyToTree(numericPad)
+        }
+        if (::emojiPanel.isInitialized) emojiPanel.setBackgroundColor(palette.surface2Color)
     }
 
     // ── Macro bar ─────────────────────────────────────────────────────────────
@@ -1927,19 +1963,7 @@ class TermKeyIMEService : InputMethodService() {
             KeyboardLayoutMode.FULL -> emptySet()
         }
 
-        val compactLatinKeys = when (layoutMode) {
-            KeyboardLayoutMode.COMPACT_EN -> COMPACT_EN_KEY_IDS + setOf(
-                R.id.key_comma, R.id.key_period, R.id.key_slash, R.id.key_shift,
-                R.id.key_emoji, R.id.key_lang, R.id.key_quote, R.id.key_enter,
-            )
-            KeyboardLayoutMode.COMPACT_ES -> COMPACT_ES_KEY_IDS + setOf(
-                R.id.key_comma, R.id.key_period, R.id.key_slash, R.id.key_shift,
-                R.id.key_emoji, R.id.key_lang, R.id.key_quote, R.id.key_enter,
-            )
-            KeyboardLayoutMode.ONE_HANDED_LEFT,
-            KeyboardLayoutMode.ONE_HANDED_RIGHT -> visibleCompactKeys
-            else -> visibleCompactKeys
-        }
+        val compactLatinKeys = visibleCompactKeys
 
         languageKey.isActivated = (currentInputLang != InputLanguage.EN)
         languageKey.text = when (currentInputLang) {
@@ -1982,8 +2006,6 @@ class TermKeyIMEService : InputMethodService() {
                 fnRow.visibility = View.GONE
             }
         }
-
-        rootView.findViewById<View>(R.id.key_row_1)?.visibility = View.VISIBLE
 
         if (::numericPad.isInitialized) {
             val isNumeric = (layoutMode == KeyboardLayoutMode.COMPACT_NUMERIC)

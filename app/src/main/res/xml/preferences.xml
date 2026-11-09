@@ -7,13 +7,13 @@
             android:title="@string/pref_keyboard_theme"
             android:entries="@array/keyboard_theme_entries"
             android:entryValues="@array/keyboard_theme_values"
-            android:defaultValue="terminal_green" />
+            android:defaultValue="light" />
         <ListPreference
             android:key="keyboard_font"
             android:title="@string/pref_keyboard_font"
             android:entries="@array/keyboard_font_entries"
             android:entryValues="@array/keyboard_font_values"
-            android:defaultValue="monospace" />
+            android:defaultValue="sans-serif" />
         <ListPreference
             android:key="key_text_size"
             android:title="@string/pref_key_text_size"
@@ -71,7 +71,7 @@
             android:title="@string/pref_input_language"
             android:entries="@array/input_language_entries"
             android:entryValues="@array/input_language_values"
-            android:defaultValue="en" />
+            android:defaultValue="es" />
         <SwitchPreferenceCompat
             android:key="swipe_typing_enabled"
             android:title="@string/pref_swipe_typing"

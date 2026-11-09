@@ -44,7 +44,7 @@
     </string-array>
 
     <string-array name="keyboard_theme_entries">
-        <item>Terminal Green (Default)</item>
+        <item>Soft Light (Default)</item>
         <item>Classic Dark</item>
         <item>OLED True Black</item>
         <item>Dracula Night</item>
@@ -76,7 +76,7 @@
 
     <string-array name="input_language_entries">
         <item>English (EN)</item>
-        <item>Spanish (Español - ES)</item>
+        <item>Spanish (Español - Latinoamérica)</item>
     </string-array>
     <string-array name="input_language_values">
         <item>en</item>

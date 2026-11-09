@@ -1,10 +1,10 @@
 # Cythernoir TermKey
 
-TermKey is an Android on-screen keyboard for terminal work and everyday English and Spanish typing. It combines a compact QWERTY layout with terminal controls, a numeric keypad, an emoji panel, word suggestions, and configurable themes.
+TermKey is an Android on-screen keyboard for terminal work and everyday English and Latin American Spanish typing. Its default compact keyboard uses familiar mobile QWERTY rows, a number row, and a bottom action row; terminal controls remain available in the full layout.
 
 ## Features
 
-- Compact QWERTY layouts for English and Spanish, including the Spanish `ñ` key.
+- Mobile-style QWERTY layouts for English and Latin American Spanish, including the Spanish `ñ` key. Spanish is the initial language.
 - Numeric keypad with digits, punctuation, arithmetic operators, backspace, space, and enter.
 - Emoji panel with scrollable categories and a visible button to return to the keyboard.
 - Terminal controls: `Ctrl`, `Alt`, `Shift`, `Esc`, `Tab`, arrows, `Home`, `End`, `PgUp`, `PgDn`, and `F1`–`F12` in the full layout.
@@ -15,8 +15,8 @@ TermKey is an Android on-screen keyboard for terminal work and everyday English 
 
 ## Keyboard use
 
-- Tap `123` to open the numeric keypad; tap `ABC` to return to the current letter layout.
-- Tap the emoji key to open the emoji categories. Tap the keyboard icon to return to typing.
+- Tap `123` to replace the letter rows with the numeric keypad; tap `ABC` to return to the current letter layout.
+- Tap the emoji key to replace the letter rows with scrollable emoji categories. Tap the keyboard icon to return to typing.
 - Tap the language key to switch English/Spanish. Long-press it to switch between compact and full terminal layouts.
 - Use the full layout when terminal-specific keys such as function keys or control modifiers are needed.
 - Use the candidate strip to insert a suggested word. Backspace supports repeat and the configured clear gesture.

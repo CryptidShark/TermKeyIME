@@ -141,15 +141,15 @@ object KeyboardTheme {
                 keyActiveColor = 0xFF00F0FF.toInt()
             )
             "light" -> KeyboardColorPalette(
-                surfaceColor = 0xFFF8F9FA.toInt(),
-                surface2Color = 0xFFE9ECEF.toInt(),
-                borderColor = 0xFFDEE2E6.toInt(),
-                textColor = 0xFF212529.toInt(),
-                textDimColor = 0xFF6C757D.toInt(),
-                accentColor = 0xFF007AFF.toInt(),
+                surfaceColor = 0xFFD5DAE2.toInt(),
+                surface2Color = 0xFFC6CDD7.toInt(),
+                borderColor = 0xFFB3BBC7.toInt(),
+                textColor = 0xFF202124.toInt(),
+                textDimColor = 0xFF5F6368.toInt(),
+                accentColor = 0xFFB5C3D8.toInt(),
                 keyBgColor = 0xFFFFFFFF.toInt(),
-                keyAltBgColor = 0xFFE9ECEF.toInt(),
-                keyActiveColor = 0xFF007AFF.toInt()
+                keyAltBgColor = 0xFFE8ECF2.toInt(),
+                keyActiveColor = 0xFFB5C3D8.toInt()
             )
             "crimson" -> KeyboardColorPalette(
                 surfaceColor = 0xFF1A0F0F.toInt(),
